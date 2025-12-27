@@ -1,0 +1,11 @@
+{
+  "name": "attendance-system",
+  "version": "1.0.0",
+  "description": "Advanced Attendance Management System",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo no tests"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}
