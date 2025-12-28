@@ -1655,6 +1655,7 @@ function toggleStatus(element) {
 // Render student card with clickable name and roll number
 // Render student card with clickable name and roll number
 // Render student card with Toggle Switch style (Matches Pic 1)
+// Render student card with Toggle Switch style (Restores Original Look)
 function renderStudentCard(student, isChecked = false) {
   const grid = document.getElementById("studentGrid");
 
@@ -1667,7 +1668,7 @@ function renderStudentCard(student, isChecked = false) {
   div.id = `student-card-${student.id}`;
   div.className = "student-attendance-card";
 
-  // Apply the "Card" styling directly to ensure it matches Pic 1
+  // === RESTORE ORIGINAL CARD STYLING ===
   div.style.padding = "15px";
   div.style.background = "white";
   div.style.border = "1px solid #ddd";
@@ -1676,9 +1677,10 @@ function renderStudentCard(student, isChecked = false) {
   div.style.justifyContent = "space-between";
   div.style.alignItems = "center";
   div.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)";
+  div.style.marginBottom = "0"; // Reset any default margin
 
-  // HTML Structure: Name/Roll on Left, Toggle Button on Right
-  // CRITICAL: Using student.firstname / lastname / rollno (Lowercase)
+  // === CORRECT HTML STRUCTURE WITH LOWERCASE VARIABLES ===
+  // Uses 'attendance-toggle' class to get the "Present" button look
   div.innerHTML = `
       <div style="text-align:left;">
           <div style="font-weight:bold; color:var(--color-dark); font-size: 15px;">
