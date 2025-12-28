@@ -111,13 +111,17 @@ async function updateClassFilterDropdown(semesterFilter, branchFilter) {
 }
 
 // Populate student dashboard
+// Populate student dashboard
 async function populateStudentDashboard(student) {
+  // FIX: Using lowercase keys (firstname, lastname, rollno)
   document.getElementById(
     "studentNameDisplay"
-  ).textContent = `${student.firstName} ${student.lastName}`;
+  ).textContent = `${student.firstname} ${student.lastname}`;
+
   document.getElementById(
     "studentRollDisplay"
-  ).textContent = `Roll No: ${student.rollNo}`;
+  ).textContent = `Roll No: ${student.rollno}`;
+
   document.getElementById("studentEmailDisplay").textContent =
     student.email || "N/A";
   document.getElementById("studentDeptDisplay").textContent =
@@ -129,31 +133,33 @@ async function populateStudentDashboard(student) {
 }
 
 // Load student statistics
+// Load student statistics
 async function loadStudentStats(studentId) {
   const attendance = await getAll("attendance");
   const classes = await getAll("classes");
 
-  // Filter attendance for this student
-  const studentAttendance = attendance.filter((r) => r.studentId === studentId);
+  // FIX: Using lowercase 'studentid' to match database
+  const studentAttendance = attendance.filter((r) => r.studentid === studentId);
 
-  // Group by classId and session
+  // Group by classid and session
   const attendanceByClass = {};
   studentAttendance.forEach((r) => {
-    if (!attendanceByClass[r.classId]) {
-      attendanceByClass[r.classId] = {
+    // FIX: Using lowercase 'classid'
+    if (!attendanceByClass[r.classid]) {
+      attendanceByClass[r.classid] = {
         total: 0,
         present: 0,
         absent: 0,
         sessions: new Set(),
       };
     }
-    attendanceByClass[r.classId].total++;
-    if (r.status === "present") attendanceByClass[r.classId].present++;
-    if (r.status === "absent") attendanceByClass[r.classId].absent++;
+    attendanceByClass[r.classid].total++;
+    if (r.status === "present") attendanceByClass[r.classid].present++;
+    if (r.status === "absent") attendanceByClass[r.classid].absent++;
 
     // Track unique sessions
     if (r.session) {
-      attendanceByClass[r.classId].sessions.add(`${r.date}-${r.session}`);
+      attendanceByClass[r.classid].sessions.add(`${r.date}-${r.session}`);
     }
   });
 
@@ -174,6 +180,8 @@ async function loadStudentStats(studentId) {
     const percentage =
       stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
     const uniqueSessions = stats.sessions.size;
+
+    // FIX: Added color logic for status badge
     const status =
       percentage >= 75
         ? '<span class="status-badge" style="background:#d4edda; color:#155724;">Good</span>'
