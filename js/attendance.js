@@ -1380,6 +1380,7 @@ function openBulkAttendanceModal() {
 
 // Save bulk attendance
 // Save bulk attendance (Fixed for Lowercase DB Columns)
+// Save bulk attendance (Fixed: Supports Multiple Sessions)
 async function saveBulkAttendance() {
   const classId = parseInt(document.getElementById("facultyClassSelect").value);
   if (!classId) return;
@@ -1390,83 +1391,130 @@ async function saveBulkAttendance() {
     return;
   }
 
-  const session = parseInt(
-    document.getElementById("bulkAttendanceSession").value
-  );
-  if (!session) {
-    showToast("Please select a session", "error");
-    return;
-  }
+  // Get the total session count from the MAIN dashboard input
+  const maxSessions =
+    parseInt(document.getElementById("attendanceSession").value) || 1;
+
+  // Get the specific session from the MODAL (as a starting point or single target)
+  const targetSession =
+    parseInt(document.getElementById("bulkAttendanceSession").value) || 1;
 
   const input = document.getElementById("bulkAttendanceInput").value;
   const lines = input.split(/\r\n|\n|\r/);
+
+  // Parse the input data first
+  const parsedData = [];
+  lines.forEach((line) => {
+    if (!line.trim()) return;
+    const parts = line.split(",").map((s) => s.trim());
+    const rollNo = parts[0];
+    const statusKey = parts.length > 1 ? parts[1].toUpperCase() : "P";
+    const status = statusKey === "A" ? "absent" : "present";
+    parsedData.push({ rollNo, status });
+  });
+
+  if (parsedData.length === 0) {
+    showToast("No data found to upload", "error");
+    return;
+  }
+
+  // CONFIRMATION: Ask user if they want to apply to ALL sessions or just one
+  let applyToAll = false;
+  if (maxSessions > 1) {
+    const userConfirmed = confirm(
+      `You have ${maxSessions} sessions active for this date.\n\nClick OK to apply this attendance to ALL ${maxSessions} sessions.\nClick CANCEL to save only for Session ${targetSession}.`
+    );
+    applyToAll = userConfirmed;
+  }
 
   const allStudents = await getAll("students");
   const allAttendance = await getAll("attendance");
 
   let successCount = 0;
+  let sessionsProcessed = 0;
 
-  for (let line of lines) {
-    if (!line.trim()) continue;
-    const parts = line.split(",").map((s) => s.trim());
-    const rollNo = parts[0];
-    const statusKey = parts.length > 1 ? parts[1].toUpperCase() : "P";
+  // Determine loop range
+  const startLoop = applyToAll ? 1 : targetSession;
+  const endLoop = applyToAll ? maxSessions : targetSession;
 
-    // Validate status - only P or A allowed
-    let status = "present";
-    if (statusKey === "A") status = "absent";
+  // LOOP: Iterate through required sessions
+  for (
+    let currentSession = startLoop;
+    currentSession <= endLoop;
+    currentSession++
+  ) {
+    sessionsProcessed++;
 
-    // FIX 1: Using lowercase 'rollno' to find the student
-    const student = allStudents.find((s) => s.rollno == rollNo);
+    // Get existing records for this specific session (to handle updates)
+    // FIX: Lowercase keys
+    const existingForSession = allAttendance.filter(
+      (r) =>
+        r.classid === classId && r.date === date && r.session === currentSession
+    );
+    const existingMap = new Map(
+      existingForSession.map((r) => [r.studentid, r])
+    );
 
-    if (student) {
-      // FIX 2: Using lowercase keys for checking existing records
-      const existingRecord = allAttendance.find(
-        (r) =>
-          r.classid === classId &&
-          r.studentid === student.id &&
-          r.date === date &&
-          r.session === session
-      );
+    const promises = [];
 
-      // FIX 3: Creating record with lowercase keys for Supabase
-      const record = {
-        classid: classId,
-        studentid: student.id,
-        date: date,
-        session: session,
-        status: status,
-        notes: `Session ${session}`,
-        createdat: new Date().toISOString(),
-      };
+    for (let item of parsedData) {
+      // FIX: Lowercase 'rollno'
+      const student = allStudents.find((s) => s.rollno == item.rollNo);
 
-      if (existingRecord) {
-        record.id = existingRecord.id;
-        await updateRecord("attendance", record);
-      } else {
-        await addRecord("attendance", record);
-      }
+      if (student) {
+        const record = {
+          classid: classId,
+          studentid: student.id,
+          date: date,
+          session: currentSession,
+          status: item.status,
+          notes: `Session ${currentSession} (Bulk Import)`,
+          createdat: new Date().toISOString(),
+        };
 
-      successCount++;
+        const existing = existingMap.get(student.id);
 
-      // Update UI if student card exists and same session
-      const currentSession = parseInt(
-        document.getElementById("attendanceSession").value
-      );
-      if (session === currentSession) {
-        const card = document.getElementById(`student-card-${student.id}`);
-        if (card) {
-          const checkbox = card.querySelector(".attendance-checkbox");
-          if (checkbox) {
-            checkbox.checked = status === "present";
-          }
+        if (existing) {
+          // UPDATE
+          record.id = existing.id;
+          if (existing.createdat) record.createdat = existing.createdat;
+          record.updatedat = new Date().toISOString();
+          promises.push(updateRecord("attendance", record));
+        } else {
+          // CREATE
+          promises.push(addRecord("attendance", record));
         }
       }
     }
+
+    // Execute all saves for this session
+    if (promises.length > 0) {
+      await Promise.all(promises);
+      successCount += promises.length;
+    }
+  }
+
+  // Update UI Checkboxes (Visual feedback for current session)
+  const currentDashboardSession = parseInt(
+    document.getElementById("attendanceSession").value
+  );
+  // Only update UI if we actually touched the session currently displayed
+  if (applyToAll || targetSession === currentDashboardSession) {
+    parsedData.forEach((item) => {
+      // FIX: Lowercase 'rollno'
+      const student = allStudents.find((s) => s.rollno == item.rollNo);
+      if (student) {
+        const card = document.getElementById(`student-card-${student.id}`);
+        if (card) {
+          const checkbox = card.querySelector(".attendance-checkbox");
+          if (checkbox) checkbox.checked = item.status === "present";
+        }
+      }
+    });
   }
 
   showToast(
-    `Processed ${successCount} attendance records for Session ${session}`,
+    `Processed ${successCount} records across ${sessionsProcessed} session(s)`,
     "success"
   );
   closeModal("bulkAttendanceModal");
