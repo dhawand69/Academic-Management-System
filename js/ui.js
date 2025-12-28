@@ -567,47 +567,7 @@ async function updateFaculty(event) {
   loadFaculty();
 }
 
-async function viewFacultyProfile(id) {
-  const faculty = await getRecord("faculty", id);
-  const classes = await getAll("classes");
-  if (!faculty) return;
-
-  // FIX: Using lowercase keys (firstname, lastname, facultyid, createdat)
-  const fullName = `${faculty.firstname} ${faculty.lastname}`;
-
-  const myClasses = classes.filter((c) => c.faculty === fullName);
-  const container = document.getElementById("facultyProfileContent");
-
-  let classRows = "";
-  if (myClasses.length === 0) {
-    classRows =
-      '<tr><td colspan="4" style="text-align:center; color:gray;">No classes assigned.</td></tr>';
-  } else {
-    myClasses.forEach((cls) => {
-      classRows += `<tr><td><strong>${cls.code}</strong></td><td>${cls.name}</td><td>${cls.semester}</td><td>${cls.year}</td></tr>`;
-    });
-  }
-
-  // FIX: Updated all ${faculty.Variable} references to lowercase
-  container.innerHTML = `<div class="profile-section"><h2 style="color:var(--color-primary); margin-bottom:5px;">${fullName}</h2><span class="status-badge" style="background:#eaf6fd; color:#2c5282; font-size:14px;">${
-    faculty.facultyid
-  }</span></div><div class="profile-info-grid"><div class="profile-info-item"><label>Department</label><div>${
-    faculty.department
-  }</div></div><div class="profile-info-item"><label>Email</label><div>${
-    faculty.email || "N/A"
-  }</div></div><div class="profile-info-item"><label>Specialization</label><div>${
-    faculty.specialization || "N/A"
-  }</div></div><div class="profile-info-item"><label>Joined Date</label><div>${new Date(
-    faculty.createdat
-  ).toLocaleDateString()}</div></div></div><h3 style="margin-bottom:15px; font-size:18px; border-bottom:2px solid var(--color-light); padding-bottom:10px;">📚 Assigned Classes Workload</h3><table><thead><tr><th>Code</th><th>Subject Name</th><th>Sem</th><th>Year</th></tr></thead><tbody>${classRows}</tbody></table>`;
-
-  const btn = document.getElementById("btnEditFacultyClasses");
-  btn.onclick = function () {
-    openEditFacultyModal(id);
-  };
-  document.getElementById("facultyProfileModal").classList.add("show");
-}
-
+// ui.js - Fix for Faculty List
 async function loadFaculty() {
   const allFaculty = await getAll("faculty");
   const classes = await getAll("classes");
@@ -621,6 +581,7 @@ async function loadFaculty() {
   );
 
   filteredFaculty.forEach((fac) => {
+    // FIX: Use lowercase keys (firstname, lastname)
     const fullName = `${fac.firstname} ${fac.lastname}`;
 
     // Count classes
@@ -635,7 +596,78 @@ async function loadFaculty() {
 
     const tr = document.createElement("tr");
 
-    // FIX: Replaced <a href="#"> with <span onclick> to prevent URL # issue
+    // FIX: Replaced <a href="#"> with <span onclick> to prevent URL sticking
+    tr.innerHTML = `
+        <td>${fac.facultyid}</td>
+        <td>
+            <span onclick="viewFacultyProfile(${fac.id})" 
+                  style="cursor: pointer; color: var(--color-primary); font-weight: bold; text-decoration: none;">
+                ${fullName}
+            </span>
+        </td>
+        <td>${
+          classBadges || '<span style="color:#999; font-size:11px;">None</span>'
+        }</td>
+        <td>${fac.department}</td>
+        <td>${fac.specialization || "N/A"}</td>
+        <td>
+            <button class="btn btn-small btn-info" onclick="openEditFacultyModal(${
+              fac.id
+            })">Edit</button>
+            <button class="btn btn-small btn-danger" onclick="deleteFaculty(${
+              fac.id
+            })">Delete</button>
+        </td>`;
+
+    tbody.appendChild(tr);
+  });
+
+  // Update dropdown for "Add Class" modal
+  const select = document.getElementById("classFaculty");
+  if (select) {
+    select.innerHTML = '<option value="">-- Select Faculty --</option>';
+    allFaculty.forEach((fac) => {
+      const name = `${fac.firstname} ${fac.lastname}`;
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      select.appendChild(opt);
+    });
+  }
+
+  if (typeof updateDashboard === "function") updateDashboard();
+}
+
+// ui.js - Fix for Faculty List
+async function loadFaculty() {
+  const allFaculty = await getAll("faculty");
+  const classes = await getAll("classes");
+  const tbody = document.getElementById("facultyTableBody");
+  const filterBranch = document.getElementById("facultyBranchFilter").value;
+
+  tbody.innerHTML = "";
+
+  const filteredFaculty = allFaculty.filter((f) =>
+    filterBranch === "all" ? true : f.department === filterBranch
+  );
+
+  filteredFaculty.forEach((fac) => {
+    // FIX: Use lowercase keys (firstname, lastname)
+    const fullName = `${fac.firstname} ${fac.lastname}`;
+
+    // Count classes
+    const myClasses = classes.filter((c) => c.faculty === fullName);
+
+    const classBadges = myClasses
+      .map(
+        (c) =>
+          `<span class="assigned-classes-badge">${c.code} (${c.semester})</span>`
+      )
+      .join("");
+
+    const tr = document.createElement("tr");
+
+    // FIX: Replaced <a href="#"> with <span onclick> to prevent URL sticking
     tr.innerHTML = `
         <td>${fac.facultyid}</td>
         <td>
