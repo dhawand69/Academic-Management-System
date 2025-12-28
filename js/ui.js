@@ -1056,3 +1056,13 @@ window.onclick = function (event) {
     }
   }
 };
+
+// Add this to ui.js to fix the ReferenceError
+function toggleDateRange() {
+  const rangeInputs = document.getElementById("dateRangeInputs");
+  const isRange = document.querySelector('input[name="dateFilterType"][value="range"]').checked;
+  
+  if (rangeInputs) {
+    rangeInputs.style.display = isRange ? "flex" : "none";
+  }
+}
