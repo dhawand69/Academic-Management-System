@@ -1,17 +1,15 @@
 // import.js - Data Import Functions with Sanitization
-// CORRECTED FOR ALL LOWERCASE COLUMN NAMES
+// CORRECTED: Includes Safe Wipe & Full JSON/ZIP Support
 
 // ========== COLUMN SANITIZATION FUNCTION ==========
-// ALL LOWERCASE - MATCHING SUPABASE SCHEMA
-
 function sanitizeRecord(store, record) {
   const validColumns = {
-    students: ['id', 'rollno', 'firstname', 'lastname', 'email', 'department', 'year', 'semester', 'createdat'],
-    faculty: ['id', 'facultyid', 'firstname', 'lastname', 'email', 'department', 'specialization', 'password', 'createdat'],
-    classes: ['id', 'code', 'name', 'department', 'semester', 'faculty', 'year', 'credits', 'createdat'],
-    attendance: ['id', 'classid', 'studentid', 'date', 'session', 'status', 'notes', 'createdat'],
+    students: ['id', 'rollno', 'firstname', 'lastname', 'email', 'department', 'year', 'semester', 'createdat', 'updatedat'],
+    faculty: ['id', 'facultyid', 'firstname', 'lastname', 'email', 'department', 'specialization', 'password', 'createdat', 'updatedat'],
+    classes: ['id', 'code', 'name', 'department', 'semester', 'faculty', 'year', 'credits', 'createdat', 'updatedat'],
+    attendance: ['id', 'classid', 'studentid', 'date', 'session', 'status', 'notes', 'createdat', 'updatedat'],
     academic_years: ['id', 'year', 'startdate', 'enddate', 'type', 'createdat'],
-    settings: ['id', 'key', 'value', 'createdat']
+    settings: ['id', 'key', 'value', 'createdat', 'updatedat']
   };
 
   const cleanedRecord = {};
@@ -31,9 +29,37 @@ function sanitizeRecord(store, record) {
   return Object.keys(cleanedRecord).length > 0 ? cleanedRecord : record;
 }
 
-// ========== FUNCTION 1: importStructuredData ==========
+// ========== CRITICAL: DATABASE WIPE FUNCTION ==========
+// Clears tables in specific order to avoid Foreign Key conflicts
+async function wipeDatabase(progressBar) {
+  console.log("🧹 Starting Safe Database Wipe...");
+  if(progressBar) progressBar.textContent = "Cleaning old data...";
+
+  // 1. Delete Children First (Attendance) - Frees up Classes
+  await clearStore('attendance');
+  if(progressBar) progressBar.style.width = '15%';
+
+  // 2. Delete Classes - Frees up Faculty
+  await clearStore('classes');
+  if(progressBar) progressBar.style.width = '30%';
+
+  // 3. Delete Independent Tables
+  await clearStore('students');
+  await clearStore('faculty');
+  await clearStore('academic_years');
+  await clearStore('settings');
+  
+  if(progressBar) progressBar.style.width = '45%';
+  console.log("✅ Database Wiped Clean");
+}
+
+// ========== FUNCTION 1: importStructuredData (ZIP) ==========
 
 async function importStructuredData(zipContent, progressBar) {
+  // WIPE FIRST
+  await wipeDatabase(progressBar);
+
+  // Import in Dependency Order: Faculty -> Classes -> Attendance
   const stores = ['students', 'faculty', 'classes', 'attendance', 'academic_years', 'settings'];
 
   for (let i = 0; i < stores.length; i++) {
@@ -45,29 +71,34 @@ async function importStructuredData(zipContent, progressBar) {
         const text = await file.async('text');
         const data = JSON.parse(text);
 
-        await clearStore(store);
-
+        let count = 0;
         for (const item of data) {
           const cleanedItem = sanitizeRecord(store, item);
           await addRecord(store, cleanedItem);
+          count++;
         }
-
-        console.log(`✅ Imported ${data.length} records to ${store}`);
+        console.log(`✅ Imported ${count} records to ${store}`);
 
       } catch (error) {
         console.error(`Error importing ${store}:`, error);
+        if (typeof showToast === 'function') showToast(`Failed to import ${store}`, 'error');
       }
     }
 
-    const percent = 60 + Math.round(((i + 1) / stores.length) * 30);
-    progressBar.style.width = percent + '%';
-    progressBar.textContent = percent + '%';
+    const percent = 45 + Math.round(((i + 1) / stores.length) * 55);
+    if(progressBar) {
+        progressBar.style.width = percent + '%';
+        progressBar.textContent = percent + '%';
+    }
   }
 }
 
-// ========== FUNCTION 2: importIndividualFiles ==========
+// ========== FUNCTION 2: importIndividualFiles (ZIP) ==========
 
 async function importIndividualFiles(zipContent, progressBar) {
+  // WIPE FIRST
+  await wipeDatabase(progressBar);
+
   const fileMappings = {
     students: ['students.json', 'students.csv'],
     faculty: ['faculty.json', 'faculty.csv'],
@@ -79,8 +110,11 @@ async function importIndividualFiles(zipContent, progressBar) {
 
   let processed = 0;
   const total = Object.keys(fileMappings).length;
+  const orderedStores = ['students', 'faculty', 'classes', 'attendance', 'academic_years', 'settings'];
 
-  for (const [store, possibleFiles] of Object.entries(fileMappings)) {
+  for (const store of orderedStores) {
+    const possibleFiles = fileMappings[store];
+    
     for (const fileName of possibleFiles) {
       const file = zipContent.file(fileName);
 
@@ -96,15 +130,12 @@ async function importIndividualFiles(zipContent, progressBar) {
           }
 
           if (data && data.length > 0) {
-            await clearStore(store);
-
             for (const item of data) {
               const cleanedItem = sanitizeRecord(store, item);
               await addRecord(store, cleanedItem);
             }
-
             console.log(`✅ Imported ${data.length} records to ${store}`);
-            break;
+            break; 
           }
 
         } catch (error) {
@@ -114,15 +145,20 @@ async function importIndividualFiles(zipContent, progressBar) {
     }
 
     processed++;
-    const percent = 60 + Math.round((processed / total) * 30);
-    progressBar.style.width = percent + '%';
-    progressBar.textContent = percent + '%';
+    const percent = 45 + Math.round((processed / total) * 55);
+    if(progressBar) {
+        progressBar.style.width = percent + '%';
+        progressBar.textContent = percent + '%';
+    }
   }
 }
 
-// ========== FUNCTION 3: importFromStructuredJSON ==========
+// ========== FUNCTION 3: importFromStructuredJSON (Single File) ==========
 
 async function importFromStructuredJSON(completeData, progressBar) {
+  // WIPE FIRST
+  await wipeDatabase(progressBar);
+
   const stores = ['students', 'faculty', 'classes', 'attendance', 'academic_years', 'settings'];
 
   for (let i = 0; i < stores.length; i++) {
@@ -131,29 +167,33 @@ async function importFromStructuredJSON(completeData, progressBar) {
 
     if (data && Array.isArray(data)) {
       try {
-        await clearStore(store);
-
+        let count = 0;
         for (const item of data) {
           const cleanedItem = sanitizeRecord(store, item);
           await addRecord(store, cleanedItem);
+          count++;
         }
-
-        console.log(`✅ Imported ${data.length} records to ${store}`);
+        console.log(`✅ Imported ${count} records to ${store}`);
 
       } catch (error) {
         console.error(`Error importing ${store}:`, error);
       }
     }
 
-    const percent = 60 + Math.round(((i + 1) / stores.length) * 30);
-    progressBar.style.width = percent + '%';
-    progressBar.textContent = percent + '%';
+    const percent = 45 + Math.round(((i + 1) / stores.length) * 55);
+    if(progressBar) {
+        progressBar.style.width = percent + '%';
+        progressBar.textContent = percent + '%';
+    }
   }
 }
 
-// ========== FUNCTION 4: importFromLegacyJSON ==========
+// ========== FUNCTION 4: importFromLegacyJSON (Single File) ==========
 
 async function importFromLegacyJSON(data, progressBar) {
+  // WIPE FIRST
+  await wipeDatabase(progressBar);
+
   const stores = ['students', 'faculty', 'classes', 'attendance', 'academic_years', 'settings'];
 
   for (let i = 0; i < stores.length; i++) {
@@ -161,13 +201,12 @@ async function importFromLegacyJSON(data, progressBar) {
 
     if (data[store] && Array.isArray(data[store])) {
       try {
-        await clearStore(store);
-
+        let count = 0;
         for (const item of data[store]) {
           const cleanedItem = sanitizeRecord(store, item);
           await addRecord(store, cleanedItem);
+          count++;
         }
-
         console.log(`✅ Imported ${data[store].length} records to ${store}`);
 
       } catch (error) {
@@ -175,9 +214,11 @@ async function importFromLegacyJSON(data, progressBar) {
       }
     }
 
-    const percent = 60 + Math.round(((i + 1) / stores.length) * 30);
-    progressBar.style.width = percent + '%';
-    progressBar.textContent = percent + '%';
+    const percent = 45 + Math.round(((i + 1) / stores.length) * 55);
+    if(progressBar) {
+        progressBar.style.width = percent + '%';
+        progressBar.textContent = percent + '%';
+    }
   }
 }
 
@@ -196,7 +237,6 @@ function parseCSVToObjects(csvText) {
   for (let i = 1; i < lines.length; i++) {
     if (lines[i].trim() === '') continue;
 
-    // Handle quoted CSV properly
     const values = [];
     let current = '';
     let inQuotes = false;
@@ -235,8 +275,8 @@ async function handleCompleteDbUpload(event) {
 
   if (progressDiv) progressDiv.style.display = 'block';
   if (progressBar) {
-    progressBar.style.width = '10%';
-    progressBar.textContent = '10%';
+    progressBar.style.width = '5%';
+    progressBar.textContent = '5%';
   }
 
   try {
@@ -248,7 +288,6 @@ async function handleCompleteDbUpload(event) {
       const zip = new JSZip();
       const zipContent = await zip.loadAsync(file);
 
-      // Check if this is a structured export
       const hasStructuredFiles = (
         zipContent.file('students.json') !== null ||
         zipContent.file('faculty.json') !== null ||
@@ -276,7 +315,6 @@ async function handleCompleteDbUpload(event) {
       throw new Error('Unsupported file format. Please use ZIP or JSON.');
     }
 
-    // Success!
     if (progressBar) {
       progressBar.style.width = '100%';
       progressBar.textContent = '100%';
@@ -284,21 +322,14 @@ async function handleCompleteDbUpload(event) {
 
     showToast('✅ Database imported successfully! Refreshing data...', 'success');
 
-    // Reload all data
-    await loadStudents();
-    await loadFaculty();
-    await loadClasses();
-    await loadAcademicYears();
-    if (typeof updateDashboard === 'function') {
-      await updateDashboard();
-    }
-    if (typeof updateExportStats === 'function') {
-      await updateExportStats();
-    }
-
-    setTimeout(() => {
+    setTimeout(async () => {
+      if (typeof loadStudents === 'function') await loadStudents();
+      if (typeof loadFaculty === 'function') await loadFaculty();
+      if (typeof loadClasses === 'function') await loadClasses();
+      if (typeof loadAcademicYears === 'function') await loadAcademicYears();
+      if (typeof updateDashboard === 'function') await updateDashboard();
       if (progressDiv) progressDiv.style.display = 'none';
-    }, 2000);
+    }, 1000);
 
   } catch (error) {
     console.error('❌ Import error:', error);
