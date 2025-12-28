@@ -1633,11 +1633,14 @@ function toggleStatus(element) {
 // =============================================
 
 // Render student card with clickable name and roll number
+// Render student card with clickable name and roll number
 function renderStudentCard(student, isChecked = false) {
   const grid = document.getElementById("studentGrid");
   const card = document.createElement("div");
   card.className = "student-card";
   card.id = `student-card-${student.id}`;
+
+  // FIXED: Used lowercase property names (firstname, lastname, rollno)
   card.innerHTML = `
       <div class="student-card-header">
           <input type="checkbox" class="attendance-checkbox" value="${
@@ -1647,21 +1650,21 @@ function renderStudentCard(student, isChecked = false) {
           <div class="student-info">
               <a href="#" onclick="viewStudentAttendance(${
                 student.id
-              }, '${escapeHtml(student.rollNo)}', '${escapeHtml(
-    student.firstName + " " + student.lastName
+              }, '${escapeHtml(student.rollno)}', '${escapeHtml(
+    student.firstname + " " + student.lastname
   )}'); return false;" 
                  class="student-name-link" title="View attendance details">
-                  ${escapeHtml(student.firstName)} ${escapeHtml(
-    student.lastName
+                  ${escapeHtml(student.firstname)} ${escapeHtml(
+    student.lastname
   )}
               </a>
               <a href="#" onclick="viewStudentAttendance(${
                 student.id
-              }, '${escapeHtml(student.rollNo)}', '${escapeHtml(
-    student.firstName + " " + student.lastName
+              }, '${escapeHtml(student.rollno)}', '${escapeHtml(
+    student.firstname + " " + student.lastname
   )}'); return false;" 
                  class="student-roll-link" title="View attendance details">
-                  ${escapeHtml(student.rollNo)}
+                  ${escapeHtml(student.rollno)}
               </a>
           </div>
       </div>
