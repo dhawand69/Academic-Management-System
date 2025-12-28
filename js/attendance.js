@@ -1271,6 +1271,7 @@ async function loadClassStudents(dateOverride) {
 
 // Submit attendance
 // Submit attendance (Fixed: Detects existing records correctly)
+// Submit attendance (Fixed: Correctly updates existing records)
 async function submitAttendance() {
   const classSelect = document.getElementById("facultyClassSelect");
   const classId = parseInt(classSelect.value);
@@ -1288,15 +1289,15 @@ async function submitAttendance() {
     return;
   }
 
-  // Pre-fetch existing records to avoid duplication
+  // 1. Fetch all attendance to check for duplicates
   const allAttendance = await getAll("attendance");
 
-  // FIX: Using lowercase 'classid', 'session', 'date' to match database
+  // FIX: Using lowercase keys (classid, date, session) to find existing records
   const existingForSession = allAttendance.filter(
     (r) => r.classid === classId && r.date === date && r.session === session
   );
 
-  // FIX: Map using lowercase 'studentid'
+  // FIX: Map using lowercase 'studentid' for quick lookup
   const existingMap = new Map(existingForSession.map((r) => [r.studentid, r]));
 
   const promises = [];
@@ -1316,18 +1317,19 @@ async function submitAttendance() {
       createdat: new Date().toISOString(),
     };
 
+    // Check if we already have a record for this student
     const existing = existingMap.get(studentId);
 
     if (existing) {
-      // UPDATE existing record
+      // ✅ UPDATE existing record (Attach the ID)
       record.id = existing.id;
-      // Preserve original creation time if needed, or update 'updatedat'
+      // Keep original created date, update the modified date
       if (existing.createdat) record.createdat = existing.createdat;
       record.updatedat = new Date().toISOString();
 
       promises.push(updateRecord("attendance", record));
     } else {
-      // CREATE new record
+      // ✅ CREATE new record
       promises.push(addRecord("attendance", record));
     }
   });
@@ -1339,7 +1341,7 @@ async function submitAttendance() {
     );
     if (typeof generateYearlyReport === "function") generateYearlyReport();
 
-    // Clear checkboxes after successful submission (Optional)
+    // Optional: Uncheck boxes after saving
     // checkboxes.forEach((cb) => (cb.checked = false));
   } catch (e) {
     console.error(e);
