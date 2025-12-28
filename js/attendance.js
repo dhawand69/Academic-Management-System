@@ -9,12 +9,14 @@ async function populateFacultyClassDropdown() {
   const facultySelect = document.getElementById("facultyClassSelect");
   const historySelect = document.getElementById("historyClassSelect");
 
-  if (facultySelect) facultySelect.innerHTML = '<option value="">-- Select a class --</option>';
-  if (historySelect) historySelect.innerHTML = '<option value="">-- Select a class --</option>';
+  if (facultySelect)
+    facultySelect.innerHTML = '<option value="">-- Select a class --</option>';
+  if (historySelect)
+    historySelect.innerHTML = '<option value="">-- Select a class --</option>';
 
   // FIX: Use lowercase keys to match the fixed auth.js and database
   const facultyName = `${currentUser.firstname} ${currentUser.lastname}`;
-  
+
   console.log("Logged in as:", facultyName); // Debugging line
 
   let myClasses;
@@ -34,7 +36,7 @@ async function populateFacultyClassDropdown() {
     const opt1 = document.createElement("option");
     opt1.value = cls.id;
     opt1.textContent = `${cls.code}: ${cls.name} (Sem ${cls.semester}, ${cls.department})`;
-    
+
     if (facultySelect) facultySelect.appendChild(opt1.cloneNode(true));
     if (historySelect) historySelect.appendChild(opt1);
   });
@@ -1652,48 +1654,51 @@ function toggleStatus(element) {
 
 // Render student card with clickable name and roll number
 // Render student card with clickable name and roll number
+// Render student card with Toggle Switch style (Matches Pic 1)
 function renderStudentCard(student, isChecked = false) {
   const grid = document.getElementById("studentGrid");
-  const card = document.createElement("div");
-  card.className = "student-card";
-  card.id = `student-card-${student.id}`;
 
-  // FIXED: Used lowercase property names (firstname, lastname, rollno)
-  card.innerHTML = `
-      <div class="student-card-header">
+  // Prevent duplicates
+  if (document.getElementById(`student-card-${student.id}`)) {
+    return;
+  }
+
+  const div = document.createElement("div");
+  div.id = `student-card-${student.id}`;
+  div.className = "student-attendance-card";
+
+  // Apply the "Card" styling directly to ensure it matches Pic 1
+  div.style.padding = "15px";
+  div.style.background = "white";
+  div.style.border = "1px solid #ddd";
+  div.style.borderRadius = "8px";
+  div.style.display = "flex";
+  div.style.justifyContent = "space-between";
+  div.style.alignItems = "center";
+  div.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)";
+
+  // HTML Structure: Name/Roll on Left, Toggle Button on Right
+  // CRITICAL: Using student.firstname / lastname / rollno (Lowercase)
+  div.innerHTML = `
+      <div style="text-align:left;">
+          <div style="font-weight:bold; color:var(--color-dark); font-size: 15px;">
+              ${student.firstname} ${student.lastname}
+          </div>
+          <div style="font-size:12px; color:var(--color-gray); margin-top: 4px;">
+              ${student.rollno}
+          </div>
+      </div>
+      
+      <label class="attendance-toggle">
           <input type="checkbox" class="attendance-checkbox" value="${
             student.id
           }" 
                  ${isChecked ? "checked" : ""}>
-          <div class="student-info">
-              <a href="#" onclick="viewStudentAttendance(${
-                student.id
-              }, '${escapeHtml(student.rollno)}', '${escapeHtml(
-    student.firstname + " " + student.lastname
-  )}'); return false;" 
-                 class="student-name-link" title="View attendance details">
-                  ${escapeHtml(student.firstname)} ${escapeHtml(
-    student.lastname
-  )}
-              </a>
-              <a href="#" onclick="viewStudentAttendance(${
-                student.id
-              }, '${escapeHtml(student.rollno)}', '${escapeHtml(
-    student.firstname + " " + student.lastname
-  )}'); return false;" 
-                 class="student-roll-link" title="View attendance details">
-                  ${escapeHtml(student.rollno)}
-              </a>
-          </div>
-      </div>
-      <div class="student-card-body">
-          <span class="badge ${student.department.toLowerCase()}">${
-    student.department
-  }</span>
-          <span class="badge sem">Sem ${student.semester}</span>
-      </div>
+          <span class="toggle-label">Present</span>
+      </label>
   `;
-  grid.appendChild(card);
+
+  grid.appendChild(div);
 }
 
 // View individual student attendance
@@ -1975,4 +1980,3 @@ async function downloadSubjectAttendanceReport() {
 
   showToast(`Downloaded ${classInfo.code} attendance report`, "success");
 }
-
