@@ -2093,14 +2093,237 @@ function clearAdminFilters() {
 function downloadCSV(csv, filename) {
   const csvFile = new Blob([csv], { type: "text/csv" });
   const downloadLink = document.createElement("a");
-  
+
   // Create a link to the file
   downloadLink.download = filename;
   downloadLink.href = window.URL.createObjectURL(csvFile);
   downloadLink.style.display = "none";
-  
+
   // Add the link to DOM, click it, and remove it
   document.body.appendChild(downloadLink);
   downloadLink.click();
   document.body.removeChild(downloadLink);
+}
+
+// =============================================
+// ADMIN EXPORT FUNCTIONS
+// =============================================
+
+async function exportAdminHistory(format) {
+  // 1. Check if downloadCSV exists (helper function)
+  if (typeof downloadCSV !== "function") {
+    console.error("downloadCSV function is missing!");
+    showToast("Export failed: Helper function missing", "error");
+    return;
+  }
+
+  showToast(`Preparing ${format.toUpperCase()} export...`, "info");
+
+  // 2. Get Filter Values (Same as loadAdminAttendanceHistory)
+  const yearFilter = document.getElementById("adminYearFilter").value;
+  const branchFilter = document.getElementById("adminBranchFilter").value;
+  const semesterFilter = document.getElementById("adminSemesterFilter").value;
+  const classFilter = document.getElementById("adminClassFilter").value;
+
+  let dateType = "all";
+  const dateRadio = document.querySelector(
+    'input[name="dateFilterType"]:checked'
+  );
+  if (dateRadio) dateType = dateRadio.value;
+
+  const dateFrom = document.getElementById("adminDateFrom").value;
+  const dateTo = document.getElementById("adminDateTo").value;
+  const statusFilter = document.getElementById("adminStatusFilter").value;
+
+  // 3. Fetch All Data
+  try {
+    const [allAttendance, allStudents, allClasses] = await Promise.all([
+      getAll("attendance"),
+      getAll("students"),
+      getAll("classes"),
+    ]);
+
+    // 4. Filter Data
+    let filteredAttendance = allAttendance;
+
+    // Date Filter
+    if (dateType === "range") {
+      if (dateFrom)
+        filteredAttendance = filteredAttendance.filter(
+          (r) => r.date >= dateFrom
+        );
+      if (dateTo)
+        filteredAttendance = filteredAttendance.filter((r) => r.date <= dateTo);
+    }
+
+    // Status Filter
+    if (statusFilter !== "all") {
+      filteredAttendance = filteredAttendance.filter(
+        (r) => r.status === statusFilter
+      );
+    }
+
+    // 5. Process Student Stats
+    const studentStats = new Map();
+
+    allStudents.forEach((student) => {
+      let isValidStudent = true;
+      const studentYear = Math.ceil(student.semester / 2);
+
+      if (yearFilter !== "all" && studentYear != yearFilter)
+        isValidStudent = false;
+      if (branchFilter !== "all" && student.department !== branchFilter)
+        isValidStudent = false;
+      if (semesterFilter !== "all" && student.semester != semesterFilter)
+        isValidStudent = false;
+
+      if (isValidStudent) {
+        studentStats.set(student.id, {
+          student: student,
+          total: 0,
+          present: 0,
+          absent: 0,
+          classIds: new Set(),
+        });
+      }
+    });
+
+    // Match Attendance to Students
+    filteredAttendance.forEach((record) => {
+      // FIX: Using lowercase 'classid' and 'studentid'
+      if (classFilter !== "all" && record.classid != classFilter) return;
+
+      if (studentStats.has(record.studentid)) {
+        const stats = studentStats.get(record.studentid);
+        stats.total++;
+        if (record.status === "present") stats.present++;
+        else stats.absent++;
+        stats.classIds.add(record.classid);
+      }
+    });
+
+    // Filter out students with no records if filtering by specific class/date
+    let reportData = Array.from(studentStats.values());
+    if (classFilter !== "all" || dateType === "range") {
+      reportData = reportData.filter((item) => item.total > 0);
+    }
+
+    // 6. Handle Different Formats
+    if (format === "csv" || format === "excel") {
+      let csvContent =
+        "Roll No,Name,Department,Year,Semester,Classes Attended,Classes Held,Total Absent,Attendance %,Status\n";
+
+      reportData.forEach((item) => {
+        const s = item.student;
+        const percentage =
+          item.total > 0 ? Math.round((item.present / item.total) * 100) : 0;
+        const status = percentage >= 75 ? "Eligible" : "Shortage";
+
+        // FIX: Using lowercase 'rollno', 'firstname', 'lastname'
+        const row = [
+          s.rollno,
+          `"${s.firstname} ${s.lastname}"`,
+          s.department,
+          s.year,
+          s.semester,
+          item.present,
+          item.total,
+          item.absent,
+          `${percentage}%`,
+          status,
+        ].join(",");
+        csvContent += row + "\n";
+      });
+
+      const fileName = `Admin_Attendance_Report_${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+      downloadCSV(csvContent, fileName);
+      showToast("Download started", "success");
+    } else if (format === "json") {
+      const jsonData = reportData.map((item) => ({
+        rollNo: item.student.rollno,
+        name: `${item.student.firstname} ${item.student.lastname}`,
+        department: item.student.department,
+        semester: item.student.semester,
+        attendance: {
+          present: item.present,
+          total: item.total,
+          percentage:
+            item.total > 0 ? Math.round((item.present / item.total) * 100) : 0,
+        },
+      }));
+
+      const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
+        type: "application/json",
+      });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `attendance_data_${new Date().getTime()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("JSON Export successful", "success");
+    } else if (format === "pdf") {
+      // Simple Print-to-PDF fallback since no PDF library is installed
+      const printWindow = window.open("", "_blank");
+      let htmlContent = `
+        <html>
+        <head>
+          <title>Attendance Report</title>
+          <style>
+            body { font-family: sans-serif; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            h2 { text-align: center; color: #2c3e50; }
+          </style>
+        </head>
+        <body>
+          <h2>Attendance Report</h2>
+          <p>Generated on: ${new Date().toLocaleString()}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Roll No</th><th>Name</th><th>Dept</th><th>Sem</th>
+                <th>Present</th><th>Total</th><th>%</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      reportData.forEach((item) => {
+        const s = item.student;
+        const percentage =
+          item.total > 0 ? Math.round((item.present / item.total) * 100) : 0;
+        // FIX: Using lowercase keys
+        htmlContent += `
+          <tr>
+            <td>${s.rollno}</td>
+            <td>${s.firstname} ${s.lastname}</td>
+            <td>${s.department}</td>
+            <td>${s.semester}</td>
+            <td>${item.present}</td>
+            <td>${item.total}</td>
+            <td>${percentage}%</td>
+          </tr>
+        `;
+      });
+
+      htmlContent += `</tbody></table></body></html>`;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      // Wait for content to load then print
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+      showToast("Opened Print Dialog (Save as PDF)", "success");
+    }
+  } catch (error) {
+    console.error("Export Error:", error);
+    showToast("Export failed. Check console for details.", "error");
+  }
 }
