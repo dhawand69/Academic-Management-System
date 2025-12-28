@@ -2086,3 +2086,21 @@ function clearAdminFilters() {
 
   showToast("Filters cleared", "info");
 }
+// =============================================
+// CSV DOWNLOAD HELPER FUNCTION
+// =============================================
+
+function downloadCSV(csv, filename) {
+  const csvFile = new Blob([csv], { type: "text/csv" });
+  const downloadLink = document.createElement("a");
+  
+  // Create a link to the file
+  downloadLink.download = filename;
+  downloadLink.href = window.URL.createObjectURL(csvFile);
+  downloadLink.style.display = "none";
+  
+  // Add the link to DOM, click it, and remove it
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+}
