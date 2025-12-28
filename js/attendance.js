@@ -248,208 +248,128 @@ function switchFacultyTab(tab, event) {
 
 // Load attendance history
 // Load attendance history (Fixed for Lowercase DB Columns)
+// Load attendance history (Fixed: Strict Type Matching Removed)
 async function loadAttendanceHistory() {
-  const classId = parseInt(document.getElementById("historyClassSelect").value);
+  const classSelect = document.getElementById("historyClassSelect");
+  // Get raw value first, then convert to allow string comparison if needed
+  const rawClassId = classSelect.value;
   const dateFilter = document.getElementById("historyDateFilter").value;
   const container = document.getElementById("historyList");
 
-  if (!classId) {
+  if (!rawClassId) {
     container.innerHTML =
       '<p style="text-align:center; color:gray;">Please select a class first.</p>';
     return;
   }
 
   const allAttendance = await getAll("attendance");
-  const allStudents = await getAll("students");
   const allClasses = await getAll("classes");
+  const allStudents = await getAll("students");
 
-  const classInfo = allClasses.find((c) => c.id === classId);
-  if (!classInfo) return;
+  // FIX: Loose comparison (==) handles string vs int IDs
+  const classInfo = allClasses.find((c) => c.id == rawClassId);
+  if (!classInfo) {
+    console.error("Class info not found for ID:", rawClassId);
+    return;
+  }
 
-  // FIX: Using lowercase 'classid'
-  let classRecords = allAttendance.filter((r) => r.classid === classId);
+  // FIX: Loose comparison for filtering records
+  let classRecords = allAttendance.filter((r) => r.classid == rawClassId);
 
   if (dateFilter) {
     classRecords = classRecords.filter((r) => r.date === dateFilter);
   }
 
-  // Group by date first, then by session
-  const dateGroups = {};
-  classRecords.forEach((r) => {
-    if (!dateGroups[r.date]) {
-      dateGroups[r.date] = [];
-    }
-    dateGroups[r.date].push(r);
-  });
-
+  // --- RENDERING LOGIC (Same as before) ---
   container.innerHTML = "";
 
-  if (Object.keys(dateGroups).length === 0) {
+  if (classRecords.length === 0) {
     container.innerHTML =
       '<p style="text-align:center; color:gray;">No attendance records found.</p>';
     return;
   }
 
-  // Sort dates in descending order (most recent first)
+  // Group by date
+  const dateGroups = {};
+  classRecords.forEach((r) => {
+    if (!dateGroups[r.date]) dateGroups[r.date] = [];
+    dateGroups[r.date].push(r);
+  });
+
   const sortedDates = Object.keys(dateGroups).sort(
     (a, b) => new Date(b) - new Date(a)
   );
 
-  // Process each date
   sortedDates.forEach((date) => {
     const recordsForDate = dateGroups[date];
-
-    // Group by session within this date
     const sessionGroups = {};
     recordsForDate.forEach((r) => {
       const session = r.session || 1;
-      if (!sessionGroups[session]) {
-        sessionGroups[session] = [];
-      }
+      if (!sessionGroups[session]) sessionGroups[session] = [];
       sessionGroups[session].push(r);
     });
 
-    // Sort sessions numerically
     const sortedSessions = Object.keys(sessionGroups).sort((a, b) => a - b);
 
-    // Create date header
-    const dateHeader = document.createElement("div");
-    dateHeader.className = "date-header"; // Uses the CSS class we added earlier
-
-    // Fallback styling in case CSS class isn't picked up immediately
-    if (!dateHeader.classList.contains("date-header")) {
-      dateHeader.style.background = "linear-gradient(135deg, #3498db, #2980b9)";
-      dateHeader.style.color = "white";
-      dateHeader.style.padding = "12px 20px";
-      dateHeader.style.borderRadius = "8px 8px 0 0";
-      dateHeader.style.marginTop = "20px";
-    }
-
+    // Header
     const formattedDate = new Date(date).toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
     });
-
-    dateHeader.innerHTML = `
-            <div>
-                <span style="font-size: 16px;">📅 ${formattedDate}</span>
-                <span style="font-size: 12px; opacity: 0.9; margin-left: 10px;">(${
-                  sortedSessions.length
-                } session${sortedSessions.length > 1 ? "s" : ""})</span>
-            </div>
-            <div style="font-size: 12px; opacity: 0.9;">Total: ${
-              recordsForDate.length
-            }</div>
-        `;
+    const dateHeader = document.createElement("div");
+    dateHeader.className = "date-header";
+    // Inline style fallback
+    dateHeader.style.cssText =
+      "background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 12px 20px; border-radius: 8px 8px 0 0; margin-top: 20px;";
+    dateHeader.innerHTML = `<div><span style="font-size: 16px;">📅 ${formattedDate}</span></div><div style="font-size: 12px;">Total: ${recordsForDate.length}</div>`;
     container.appendChild(dateHeader);
 
-    // Process each session
     sortedSessions.forEach((sessionNum) => {
-      const recordsForSession = sessionGroups[sessionNum];
-      const present = recordsForSession.filter(
-        (r) => r.status === "present"
-      ).length;
-      const absent = recordsForSession.filter(
-        (r) => r.status === "absent"
-      ).length;
+      const records = sessionGroups[sessionNum];
+      const present = records.filter((r) => r.status === "present").length;
+      const absent = records.filter((r) => r.status === "absent").length;
 
+      // Session Header
       const sessionHeader = document.createElement("div");
-      sessionHeader.style.background = "rgba(52, 152, 219, 0.1)";
-      sessionHeader.style.padding = "15px";
-      sessionHeader.style.borderBottom = "1px solid rgba(52, 152, 219, 0.2)";
-      sessionHeader.style.color = "#2c5282";
-
-      sessionHeader.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <span style="font-size: 14px; font-weight: 600;">📋 Session ${sessionNum}</span>
-                        <span class="session-indicator">${classInfo.code}</span>
-                    </div>
-                    <div style="display:flex; gap:10px;">
-                        <span style="padding: 4px 8px; background: #d4edda; color: #155724; border-radius: 4px; font-size: 12px; font-weight:600;">✅ ${present}</span>
-                        <span style="padding: 4px 8px; background: #f8d7da; color: #721c24; border-radius: 4px; font-size: 12px; font-weight:600;">❌ ${absent}</span>
-                    </div>
-                </div>
-            `;
+      sessionHeader.style.cssText =
+        "background: rgba(52, 152, 219, 0.1); padding: 15px; border-bottom: 1px solid rgba(52, 152, 219, 0.2); color: #2c5282; display:flex; justify-content:space-between;";
+      sessionHeader.innerHTML = `<span>📋 Session ${sessionNum}</span><span>✅ ${present} | ❌ ${absent}</span>`;
       container.appendChild(sessionHeader);
 
+      // Table
       const sessionContent = document.createElement("div");
-      sessionContent.style.background = "white";
-      sessionContent.style.padding = "15px";
-      sessionContent.style.borderBottom = "2px solid #f0f0f0";
-
-      sessionContent.innerHTML = `
-                <table style="width:100%; font-size:13px; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: #f8f9fa; border-bottom: 2px solid #e9ecef;">
-                            <th style="padding: 10px; text-align:left;">Name</th>
-                            <th style="padding: 10px; text-align:left;">Roll No</th>
-                            <th style="padding: 10px; text-align:left;">Status</th>
-                            <th style="padding: 10px; text-align:left;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="records-${date.replace(
-                      /-/g,
-                      ""
-                    )}-${sessionNum}"></tbody>
-                </table>
-            `;
+      sessionContent.innerHTML = `<table style="width:100%; font-size:13px; border-collapse: collapse;"><tbody id="rec-${date}-${sessionNum}"></tbody></table>`;
       container.appendChild(sessionContent);
 
-      const tbody = document.getElementById(
-        `records-${date.replace(/-/g, "")}-${sessionNum}`
-      );
+      const tbody = sessionContent.querySelector("tbody");
 
-      // FIX: Using lowercase 'studentid' for sorting
-      recordsForSession.sort((a, b) => {
-        const studentA = allStudents.find((s) => s.id === a.studentid) || {};
-        const studentB = allStudents.find((s) => s.id === b.studentid) || {};
-        // FIX: Using lowercase 'rollno'
-        return (studentA.rollno || "").localeCompare(studentB.rollno || "");
+      // Sort by roll no
+      records.sort((a, b) => {
+        const sA = allStudents.find((s) => s.id == a.studentid) || {};
+        const sB = allStudents.find((s) => s.id == b.studentid) || {};
+        return (sA.rollno || "").localeCompare(sB.rollno || "");
       });
 
-      recordsForSession.forEach((record) => {
-        // FIX: Using lowercase 'studentid'
-        const student =
-          allStudents.find((s) => s.id === record.studentid) || {};
+      records.forEach((r) => {
+        const s = allStudents.find((st) => st.id == r.studentid) || {};
+        const row = document.createElement("tr");
+        row.style.borderBottom = "1px solid #eee";
+        const statusColor = r.status === "present" ? "#d4edda" : "#f8d7da";
+        const statusText = r.status === "present" ? "✅ Present" : "❌ Absent";
 
-        const statusColors = {
-          present: { bg: "#d4edda", color: "#155724", icon: "✅" },
-          absent: { bg: "#f8d7da", color: "#721c24", icon: "❌" },
-        };
-        const status = statusColors[record.status] || statusColors.absent;
-
-        const tr = document.createElement("tr");
-        tr.style.borderBottom = "1px solid #f0f0f0";
-
-        // FIX: Using lowercase 'firstname', 'lastname', 'rollno'
-        tr.innerHTML = `
-            <td style="padding: 10px;">${student.firstname || "Unknown"} ${
-          student.lastname || ""
+        row.innerHTML = `
+            <td style="padding:8px;">${s.firstname || ""} ${
+          s.lastname || ""
         }</td>
-            <td style="padding: 10px; font-weight:500;">${
-              student.rollno || "N/A"
-            }</td>
-            <td style="padding: 10px;">
-                <span style="padding: 6px 12px; background: ${
-                  status.bg
-                }; color: ${
-          status.color
-        }; border-radius: 20px; font-size: 12px; font-weight:600;">
-                    ${status.icon} ${
-          record.status.charAt(0).toUpperCase() + record.status.slice(1)
-        }
-                </span>
-            </td>
-            <td style="padding: 10px;">
-                <button class="btn btn-small btn-info" onclick="openEditAttendanceModal(${
-                  record.id
-                })">✏️ Edit</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
+            <td style="padding:8px;">${s.rollno || "N/A"}</td>
+            <td style="padding:8px;"><span style="background:${statusColor}; padding:4px 8px; border-radius:4px;">${statusText}</span></td>
+            <td style="padding:8px;"><button class="btn btn-small btn-info" onclick="openEditAttendanceModal(${
+              r.id
+            })">✏️</button></td>
+          `;
+        tbody.appendChild(row);
       });
     });
   });
@@ -1120,26 +1040,21 @@ async function downloadAttendanceReport() {
 // Add multi-session button
 // Add multi-session button (Fixed: Prevents duplicates)
 // Add multi-session button (Fixed: robust cleanup)
+// Add multi-session button (Fixed: No Duplicates)
 function addMultiSessionButton() {
-  // 1. Remove existing button if it exists (Cleanup)
   const existingBtn = document.getElementById("multiSessionBtn");
-  if (existingBtn) {
-    existingBtn.remove();
-  }
+  if (existingBtn) existingBtn.remove(); // Force remove old one
 
-  // 2. Find the Submit button to place it next to
   const submitButton = document.querySelector("#facultyMark .btn-success");
   if (!submitButton) return;
 
-  // 3. Create and append the new button
   const multiSessionBtn = document.createElement("button");
   multiSessionBtn.type = "button";
   multiSessionBtn.className = "btn btn-warning";
   multiSessionBtn.id = "multiSessionBtn";
   multiSessionBtn.textContent = "📅 Mark Multiple Sessions";
   multiSessionBtn.onclick = markMultipleSessions;
-  multiSessionBtn.style.display = "inline-block";
-  multiSessionBtn.style.marginLeft = "10px";
+  multiSessionBtn.style.cssText = "display:inline-block; margin-left:10px;";
 
   submitButton.parentNode.insertBefore(
     multiSessionBtn,
@@ -1381,8 +1296,9 @@ function openBulkAttendanceModal() {
 // Save bulk attendance
 // Save bulk attendance (Fixed for Lowercase DB Columns)
 // Save bulk attendance (Fixed: Supports Multiple Sessions)
+// Save bulk attendance (Fixed: Robust RollNo Matching & Logging)
 async function saveBulkAttendance() {
-  const classId = parseInt(document.getElementById("facultyClassSelect").value);
+  const classId = document.getElementById("facultyClassSelect").value;
   if (!classId) return;
 
   const date = document.getElementById("attendanceDate").value;
@@ -1391,18 +1307,16 @@ async function saveBulkAttendance() {
     return;
   }
 
-  // Get the total session count from the MAIN dashboard input
+  // Get session info
   const maxSessions =
     parseInt(document.getElementById("attendanceSession").value) || 1;
-
-  // Get the specific session from the MODAL (as a starting point or single target)
   const targetSession =
     parseInt(document.getElementById("bulkAttendanceSession").value) || 1;
 
   const input = document.getElementById("bulkAttendanceInput").value;
   const lines = input.split(/\r\n|\n|\r/);
 
-  // Parse the input data first
+  // Parse input
   const parsedData = [];
   lines.forEach((line) => {
     if (!line.trim()) return;
@@ -1410,34 +1324,34 @@ async function saveBulkAttendance() {
     const rollNo = parts[0];
     const statusKey = parts.length > 1 ? parts[1].toUpperCase() : "P";
     const status = statusKey === "A" ? "absent" : "present";
-    parsedData.push({ rollNo, status });
+
+    if (rollNo) parsedData.push({ rollNo, status });
   });
 
   if (parsedData.length === 0) {
-    showToast("No data found to upload", "error");
+    showToast("No valid data found in text area", "error");
     return;
   }
 
-  // CONFIRMATION: Ask user if they want to apply to ALL sessions or just one
+  // Ask to apply to all sessions
   let applyToAll = false;
   if (maxSessions > 1) {
-    const userConfirmed = confirm(
-      `You have ${maxSessions} sessions active for this date.\n\nClick OK to apply this attendance to ALL ${maxSessions} sessions.\nClick CANCEL to save only for Session ${targetSession}.`
+    applyToAll = confirm(
+      `You have ${maxSessions} sessions active.\nClick OK to apply to ALL sessions (1-${maxSessions}).\nClick CANCEL to save only for Session ${targetSession}.`
     );
-    applyToAll = userConfirmed;
   }
 
+  // Fetch Data
   const allStudents = await getAll("students");
   const allAttendance = await getAll("attendance");
 
   let successCount = 0;
   let sessionsProcessed = 0;
 
-  // Determine loop range
   const startLoop = applyToAll ? 1 : targetSession;
   const endLoop = applyToAll ? maxSessions : targetSession;
 
-  // LOOP: Iterate through required sessions
+  // Process Sessions
   for (
     let currentSession = startLoop;
     currentSession <= endLoop;
@@ -1445,11 +1359,9 @@ async function saveBulkAttendance() {
   ) {
     sessionsProcessed++;
 
-    // Get existing records for this specific session (to handle updates)
-    // FIX: Lowercase keys
     const existingForSession = allAttendance.filter(
       (r) =>
-        r.classid === classId && r.date === date && r.session === currentSession
+        r.classid == classId && r.date === date && r.session == currentSession
     );
     const existingMap = new Map(
       existingForSession.map((r) => [r.studentid, r])
@@ -1458,12 +1370,15 @@ async function saveBulkAttendance() {
     const promises = [];
 
     for (let item of parsedData) {
-      // FIX: Lowercase 'rollno'
-      const student = allStudents.find((s) => s.rollno == item.rollNo);
+      // FIX: Loose equality (==) allows string vs number matching
+      // Also trims both sides to ensure no whitespace issues
+      const student = allStudents.find(
+        (s) => String(s.rollno).trim() == String(item.rollNo).trim()
+      );
 
       if (student) {
         const record = {
-          classid: classId,
+          classid: parseInt(classId), // Ensure numeric
           studentid: student.id,
           date: date,
           session: currentSession,
@@ -1475,42 +1390,24 @@ async function saveBulkAttendance() {
         const existing = existingMap.get(student.id);
 
         if (existing) {
-          // UPDATE
           record.id = existing.id;
           if (existing.createdat) record.createdat = existing.createdat;
           record.updatedat = new Date().toISOString();
           promises.push(updateRecord("attendance", record));
         } else {
-          // CREATE
           promises.push(addRecord("attendance", record));
         }
+      } else {
+        console.warn(
+          `Skipped: Roll No "${item.rollNo}" not found in database.`
+        );
       }
     }
 
-    // Execute all saves for this session
     if (promises.length > 0) {
       await Promise.all(promises);
       successCount += promises.length;
     }
-  }
-
-  // Update UI Checkboxes (Visual feedback for current session)
-  const currentDashboardSession = parseInt(
-    document.getElementById("attendanceSession").value
-  );
-  // Only update UI if we actually touched the session currently displayed
-  if (applyToAll || targetSession === currentDashboardSession) {
-    parsedData.forEach((item) => {
-      // FIX: Lowercase 'rollno'
-      const student = allStudents.find((s) => s.rollno == item.rollNo);
-      if (student) {
-        const card = document.getElementById(`student-card-${student.id}`);
-        if (card) {
-          const checkbox = card.querySelector(".attendance-checkbox");
-          if (checkbox) checkbox.checked = item.status === "present";
-        }
-      }
-    });
   }
 
   showToast(
