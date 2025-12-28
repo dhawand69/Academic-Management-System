@@ -1572,13 +1572,23 @@ function renderStudentCard(student, isChecked = false) {
 
 // View individual student attendance
 // View individual student attendance (Admin Panel)
-async function viewStudentAttendance(studentId, rollNo, fullName) {
-  const allAttendance = await getAll("attendance");
-  const allClasses = await getAll("classes");
+// View individual student attendance (Admin Panel)
+async function viewStudentAttendance(studentId) {
   const allStudents = await getAll("students");
   const student = allStudents.find((s) => s.id === studentId);
 
-  // FIX: Using lowercase 'studentid' to match Supabase
+  if (!student) {
+    showToast("Student not found", "error");
+    return;
+  }
+
+  const fullName = `${student.firstname} ${student.lastname}`;
+  const rollNo = student.rollno;
+
+  const allAttendance = await getAll("attendance");
+  const allClasses = await getAll("classes");
+
+  // FIX: Using lowercase 'studentid'
   const studentAttendance = allAttendance.filter(
     (r) => r.studentid === studentId
   );
@@ -1612,29 +1622,28 @@ async function viewStudentAttendance(studentId, rollNo, fullName) {
       const stats = classMap[classId];
       const percentage = Math.round((stats.present / stats.total) * 100);
 
-      // Color code based on percentage
-      const statusColor = percentage >= 75 ? "#27ae60" : "#e74c3c"; // Green if good, Red if low
+      const statusColor = percentage >= 75 ? "#27ae60" : "#e74c3c";
 
       html += `
-                <div style='background: white; padding: 12px; border-radius: 6px; border-left: 4px solid ${statusColor}; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
-                    <div>
-                        <div style='font-size: 14px; font-weight: bold; color: #2c3e50;'>
-                            ${cls ? cls.code : "N/A"}
-                        </div>
-                        <div style='font-size: 12px; color: #7f8c8d;'>
-                            ${cls ? cls.name : "Unknown Class"}
-                        </div>
+            <div style='background: white; padding: 12px; border-radius: 6px; border-left: 4px solid ${statusColor}; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
+                <div>
+                    <div style='font-size: 14px; font-weight: bold; color: #2c3e50;'>
+                        ${cls ? cls.code : "N/A"}
                     </div>
-                    <div style='text-align: right; font-size: 13px;'>
-                        <span style='margin: 0 10px; color: #7f8c8d;'>
-                            <strong>${stats.total}</strong> Classes
-                        </span>
-                        <span style='font-weight: bold; color: ${statusColor}; font-size: 16px; margin-left: 10px;'>
-                            ${percentage}%
-                        </span>
+                    <div style='font-size: 12px; color: #7f8c8d;'>
+                        ${cls ? cls.name : "Unknown Class"}
                     </div>
                 </div>
-            `;
+                <div style='text-align: right; font-size: 13px;'>
+                    <span style='margin: 0 10px; color: #7f8c8d;'>
+                        <strong>${stats.total}</strong> Classes
+                    </span>
+                    <span style='font-weight: bold; color: ${statusColor}; font-size: 16px; margin-left: 10px;'>
+                        ${percentage}%
+                    </span>
+                </div>
+            </div>
+        `;
     });
 
     html += "</div>";
@@ -1644,14 +1653,9 @@ async function viewStudentAttendance(studentId, rollNo, fullName) {
   // Update modal header details
   document.getElementById("detailStudentName").textContent = fullName;
   document.getElementById("detailStudentRoll").textContent = rollNo;
-
-  if (student) {
-    // FIX: Using lowercase keys from student object
-    document.getElementById("detailStudentDept").textContent =
-      student.department;
-    document.getElementById("detailStudentSem").textContent =
-      "Sem " + student.semester;
-  }
+  document.getElementById("detailStudentDept").textContent = student.department;
+  document.getElementById("detailStudentSem").textContent =
+    "Sem " + student.semester;
 
   openModal("studentAttendanceDetailModal");
 }
@@ -1878,7 +1882,6 @@ async function loadAdminAttendanceHistory() {
   const semesterFilter = document.getElementById("adminSemesterFilter").value;
   const classFilter = document.getElementById("adminClassFilter").value;
 
-  // Handle Date Filter
   let dateType = "all";
   const dateRadio = document.querySelector(
     'input[name="dateFilterType"]:checked'
@@ -1887,7 +1890,6 @@ async function loadAdminAttendanceHistory() {
 
   const dateFrom = document.getElementById("adminDateFrom").value;
   const dateTo = document.getElementById("adminDateTo").value;
-
   const statusFilter = document.getElementById("adminStatusFilter").value;
   const sortBy = document.getElementById("adminSortBy").value;
 
@@ -1898,34 +1900,27 @@ async function loadAdminAttendanceHistory() {
     getAll("classes"),
   ]);
 
-  // 3. Filter Attendance Records
+  // 3. Filter Attendance
   let filteredAttendance = allAttendance;
 
-  // Filter by Date Range
   if (dateType === "range") {
-    if (dateFrom) {
+    if (dateFrom)
       filteredAttendance = filteredAttendance.filter((r) => r.date >= dateFrom);
-    }
-    if (dateTo) {
+    if (dateTo)
       filteredAttendance = filteredAttendance.filter((r) => r.date <= dateTo);
-    }
   }
 
-  // Filter by Status (Present/Absent)
   if (statusFilter !== "all") {
     filteredAttendance = filteredAttendance.filter(
       (r) => r.status === statusFilter
     );
   }
 
-  // 4. Group Data by Student to Calculate Percentage
+  // 4. Process Student Stats
   const studentStats = new Map();
 
   allStudents.forEach((student) => {
-    // Apply Student Filters (Year, Branch, Semester)
     let isValidStudent = true;
-
-    // Determine student year (approximate from semester)
     const studentYear = Math.ceil(student.semester / 2);
 
     if (yearFilter !== "all" && studentYear != yearFilter)
@@ -1946,14 +1941,9 @@ async function loadAdminAttendanceHistory() {
     }
   });
 
-  // Process Attendance Records
   filteredAttendance.forEach((record) => {
-    // Check if record belongs to a selected Class
-    // FIX: Using lowercase 'classid'
     if (classFilter !== "all" && record.classid != classFilter) return;
 
-    // Check if record belongs to a valid student (from our filtered list above)
-    // FIX: Using lowercase 'studentid'
     if (studentStats.has(record.studentid)) {
       const stats = studentStats.get(record.studentid);
       stats.total++;
@@ -1963,20 +1953,16 @@ async function loadAdminAttendanceHistory() {
     }
   });
 
-  // Convert to Array for Sorting and Display
   let reportData = Array.from(studentStats.values());
-
-  // Remove students with 0 records IF we are looking at specific attendance logs
   if (classFilter !== "all" || dateType === "range") {
     reportData = reportData.filter((item) => item.total > 0);
   }
 
-  // 5. Sort Data
+  // 5. Sort
   reportData.sort((a, b) => {
     const pctA = a.total > 0 ? a.present / a.total : 0;
     const pctB = b.total > 0 ? b.present / b.total : 0;
 
-    // FIX: Using lowercase 'rollno', 'firstname'
     switch (sortBy) {
       case "percentage_desc":
         return pctB - pctA;
@@ -1999,7 +1985,7 @@ async function loadAdminAttendanceHistory() {
     }
   });
 
-  // 6. Render Table
+  // 6. Render
   tbody.innerHTML = "";
 
   if (reportData.length === 0) {
@@ -2014,7 +2000,6 @@ async function loadAdminAttendanceHistory() {
     const percentage =
       item.total > 0 ? Math.round((item.present / item.total) * 100) : 0;
 
-    // Resolve Class Names
     const classNames = Array.from(item.classIds)
       .map((cid) => {
         const cls = allClasses.find((c) => c.id === cid);
@@ -2022,11 +2007,17 @@ async function loadAdminAttendanceHistory() {
       })
       .join(", ");
 
-    // FIX: Using lowercase 'rollno', 'firstname', 'lastname'
     const tr = document.createElement("tr");
+
+    // FIX: Added onclick to Name column (using span instead of 'a' tag)
     tr.innerHTML = `
       <td>${s.rollno}</td>
-      <td>${s.firstname} ${s.lastname}</td>
+      <td>
+        <span onclick="viewStudentAttendance(${s.id})" 
+              style="cursor:pointer; color:var(--color-primary); font-weight:bold; text-decoration:underline;">
+            ${s.firstname} ${s.lastname}
+        </span>
+      </td>
       <td>${s.department}</td>
       <td>${s.year}</td>
       <td>${s.semester}</td>
@@ -2047,7 +2038,7 @@ async function loadAdminAttendanceHistory() {
     tbody.appendChild(tr);
   });
 
-  // 7. Update Statistics Box
+  // 7. Stats
   let totalStudents = reportData.length;
   let sumPercentage = 0;
   let above75 = 0;
