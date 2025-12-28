@@ -239,61 +239,59 @@ async function saveBatchClasses() {
 
 async function addStudent(event) {
   event.preventDefault();
-  
+
   // Get form values using CORRECT input IDs (matching HTML)
-  const rollNo = document.getElementById('studentRollNo').value;
-  const firstName = document.getElementById('studentFirstName').value;
-  const lastName = document.getElementById('studentLastName').value;
-  const email = document.getElementById('studentEmail').value;
-  const department = document.getElementById('studentDept').value;
-  const year = parseInt(document.getElementById('studentYear').value);
-  const semester = parseInt(document.getElementById('studentSemester').value);
+  const rollNo = document.getElementById("studentRollNo").value;
+  const firstName = document.getElementById("studentFirstName").value;
+  const lastName = document.getElementById("studentLastName").value;
+  const email = document.getElementById("studentEmail").value;
+  const department = document.getElementById("studentDept").value;
+  const year = parseInt(document.getElementById("studentYear").value);
+  const semester = parseInt(document.getElementById("studentSemester").value);
 
   // Validation - ensure required fields are filled
   if (!rollNo || !firstName || !lastName || !department) {
-    showToast('Please fill all required fields', 'error');
+    showToast("Please fill all required fields", "error");
     return;
   }
 
   try {
     // Add student to database with correct column names (all lowercase for Supabase)
-    const newStudent = await addRecord('students', {
-      rollno: rollNo,          // ✅ lowercase - matches Supabase column
-      firstname: firstName,    // ✅ lowercase - matches Supabase column
-      lastname: lastName,      // ✅ lowercase - matches Supabase column
+    const newStudent = await addRecord("students", {
+      rollno: rollNo, // ✅ lowercase - matches Supabase column
+      firstname: firstName, // ✅ lowercase - matches Supabase column
+      lastname: lastName, // ✅ lowercase - matches Supabase column
       email: email,
       department: department,
       year: year,
-      semester: semester
+      semester: semester,
     });
 
     if (newStudent) {
-      showToast(`Student ${firstName} added successfully!`, 'success');
-      
+      showToast(`Student ${firstName} added successfully!`, "success");
+
       // Clear the form fields
-      document.getElementById('studentRollNo').value = '';
-      document.getElementById('studentFirstName').value = '';
-      document.getElementById('studentLastName').value = '';
-      document.getElementById('studentEmail').value = '';
-      document.getElementById('studentDept').value = '';
-      document.getElementById('studentYear').value = '';
-      document.getElementById('studentSemester').value = '';
-      
+      document.getElementById("studentRollNo").value = "";
+      document.getElementById("studentFirstName").value = "";
+      document.getElementById("studentLastName").value = "";
+      document.getElementById("studentEmail").value = "";
+      document.getElementById("studentDept").value = "";
+      document.getElementById("studentYear").value = "";
+      document.getElementById("studentSemester").value = "";
+
       // Close modal
-      closeModal('addUserModal');
-      
+      closeModal("addUserModal");
+
       // Reload students list
       await loadStudents();
     } else {
-      showToast('Failed to add student', 'error');
+      showToast("Failed to add student", "error");
     }
   } catch (error) {
-    console.error('Error adding student:', error);
-    showToast(`Error adding student: ${error.message}`, 'error');
+    console.error("Error adding student:", error);
+    showToast(`Error adding student: ${error.message}`, "error");
   }
 }
-
-
 
 function autoFillStudentDetails() {
   const regNo = document.getElementById("studentRollNo").value;
@@ -343,9 +341,9 @@ async function loadStudents() {
       isSelected ? "checked" : ""
     }></td><td style="cursor: pointer; color: var(--color-primary);" onclick="viewStudentAttendance(${
       student.id
-    }, '${student.roll_no}', '${student.first_name} ${student.last_name}')">${
-      student.roll_no || ""
-    }</td><td>${student.first_name || ""} ${student.last_name || ""}</td><td>${
+    }, '${student.rollno}', '${student.firstname} ${student.lastname}')">${
+      student.rollno || ""
+    }</td><td>${student.firstname || ""} ${student.lastname || ""}</td><td>${
       student.department || ""
     }</td><td>${
       student.year || ""
@@ -1058,6 +1056,3 @@ window.onclick = function (event) {
     }
   }
 };
-
-
-
