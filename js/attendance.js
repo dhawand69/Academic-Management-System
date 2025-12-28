@@ -2378,3 +2378,41 @@ async function exportAdminHistory(format) {
     showToast("Export failed. Check console.", "error");
   }
 }
+// =============================================
+// TEMPLATE DOWNLOAD FUNCTIONS
+// =============================================
+
+function downloadTemplate(type) {
+  if (typeof downloadCSV !== "function") {
+    showToast("Error: downloadCSV helper is missing", "error");
+    return;
+  }
+
+  let csvContent = "";
+  let filename = `${type}_template.csv`;
+
+  switch (type) {
+    case "students":
+      // Headers match database columns (lowercase)
+      csvContent = "rollno,firstname,lastname,email,department,year,semester";
+      break;
+
+    case "faculty":
+      // Headers match database columns (lowercase)
+      csvContent =
+        "facultyid,firstname,lastname,email,department,specialization,password";
+      break;
+
+    case "classes":
+      // Headers match database columns (lowercase)
+      csvContent = "code,name,department,semester,faculty,year,credits";
+      break;
+
+    default:
+      showToast("Unknown template type", "error");
+      return;
+  }
+
+  downloadCSV(csvContent, filename);
+  showToast(`Downloaded ${type} template`, "success");
+}
