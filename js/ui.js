@@ -1029,12 +1029,12 @@ function renderStudentCard(student, isChecked = false) {
   div.style.alignItems = "center";
 
   div.innerHTML = `<div style="text-align:left;"><div style="font-weight:bold; color:var(--color-dark);">${
-    student.first_name
+    student.firstname
   } ${
-    student.last_name
+    student.lastname
   }</div><div style="font-size:12px; color:var(--color-gray);">${
-    student.roll_no
-  }</div></div><label class="attendance-toggle"><input type="checkbox" class="attendance-checkbox" value="${
+    student.rollno
+  }</div></div> ...<label class="attendance-toggle"><input type="checkbox" class="attendance-checkbox" value="${
     student.id
   }" ${
     isChecked ? "checked" : ""
