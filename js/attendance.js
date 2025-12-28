@@ -1114,7 +1114,13 @@ async function downloadAttendanceReport() {
 // =============================================
 
 // Add multi-session button
+// Add multi-session button (Fixed: Prevents duplicates)
 function addMultiSessionButton() {
+  // 1. Check if button already exists
+  if (document.getElementById("multiSessionBtn")) {
+    return; // Stop if button is already there
+  }
+
   const submitButton = document.querySelector("#facultyMark .btn-success");
   if (!submitButton) return;
 
