@@ -1346,6 +1346,7 @@ function openBulkAttendanceModal() {
 }
 
 // Save bulk attendance
+// Save bulk attendance (Fixed for Lowercase DB Columns)
 async function saveBulkAttendance() {
   const classId = parseInt(document.getElementById("facultyClassSelect").value);
   if (!classId) return;
@@ -1382,26 +1383,28 @@ async function saveBulkAttendance() {
     let status = "present";
     if (statusKey === "A") status = "absent";
 
-    // Find student
-    const student = allStudents.find((s) => s.rollNo === rollNo);
+    // FIX 1: Using lowercase 'rollno' to find the student
+    const student = allStudents.find((s) => s.rollno == rollNo);
+
     if (student) {
-      // Check existing for this specific session
+      // FIX 2: Using lowercase keys for checking existing records
       const existingRecord = allAttendance.find(
         (r) =>
-          r.classId === classId &&
-          r.studentId === student.id &&
+          r.classid === classId &&
+          r.studentid === student.id &&
           r.date === date &&
           r.session === session
       );
 
+      // FIX 3: Creating record with lowercase keys for Supabase
       const record = {
-        classId: classId,
-        studentId: student.id,
+        classid: classId,
+        studentid: student.id,
         date: date,
         session: session,
         status: status,
         notes: `Session ${session}`,
-        createdAt: new Date().toISOString(),
+        createdat: new Date().toISOString(),
       };
 
       if (existingRecord) {
@@ -1434,7 +1437,7 @@ async function saveBulkAttendance() {
     "success"
   );
   closeModal("bulkAttendanceModal");
-  generateYearlyReport();
+  if (typeof generateYearlyReport === "function") generateYearlyReport();
 }
 
 // =============================================
