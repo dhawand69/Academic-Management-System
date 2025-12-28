@@ -2109,8 +2109,11 @@ function downloadCSV(csv, filename) {
 // ADMIN EXPORT FUNCTIONS
 // =============================================
 
+// =============================================
+// ADMIN EXPORT FUNCTIONS (Updated with Headers)
+// =============================================
+
 async function exportAdminHistory(format) {
-  // 1. Check if downloadCSV exists (helper function)
   if (typeof downloadCSV !== "function") {
     console.error("downloadCSV function is missing!");
     showToast("Export failed: Helper function missing", "error");
@@ -2119,7 +2122,7 @@ async function exportAdminHistory(format) {
 
   showToast(`Preparing ${format.toUpperCase()} export...`, "info");
 
-  // 2. Get Filter Values (Same as loadAdminAttendanceHistory)
+  // 1. Get Filter Values
   const yearFilter = document.getElementById("adminYearFilter").value;
   const branchFilter = document.getElementById("adminBranchFilter").value;
   const semesterFilter = document.getElementById("adminSemesterFilter").value;
@@ -2135,18 +2138,17 @@ async function exportAdminHistory(format) {
   const dateTo = document.getElementById("adminDateTo").value;
   const statusFilter = document.getElementById("adminStatusFilter").value;
 
-  // 3. Fetch All Data
   try {
+    // 2. Fetch Data
     const [allAttendance, allStudents, allClasses] = await Promise.all([
       getAll("attendance"),
       getAll("students"),
       getAll("classes"),
     ]);
 
-    // 4. Filter Data
+    // 3. Filter Attendance
     let filteredAttendance = allAttendance;
 
-    // Date Filter
     if (dateType === "range") {
       if (dateFrom)
         filteredAttendance = filteredAttendance.filter(
@@ -2156,14 +2158,13 @@ async function exportAdminHistory(format) {
         filteredAttendance = filteredAttendance.filter((r) => r.date <= dateTo);
     }
 
-    // Status Filter
     if (statusFilter !== "all") {
       filteredAttendance = filteredAttendance.filter(
         (r) => r.status === statusFilter
       );
     }
 
-    // 5. Process Student Stats
+    // 4. Process Student Stats
     const studentStats = new Map();
 
     allStudents.forEach((student) => {
@@ -2188,11 +2189,11 @@ async function exportAdminHistory(format) {
       }
     });
 
-    // Match Attendance to Students
     filteredAttendance.forEach((record) => {
-      // FIX: Using lowercase 'classid' and 'studentid'
+      // FIX: Lowercase 'classid'
       if (classFilter !== "all" && record.classid != classFilter) return;
 
+      // FIX: Lowercase 'studentid'
       if (studentStats.has(record.studentid)) {
         const stats = studentStats.get(record.studentid);
         stats.total++;
@@ -2202,15 +2203,49 @@ async function exportAdminHistory(format) {
       }
     });
 
-    // Filter out students with no records if filtering by specific class/date
+    // Final Report Data
     let reportData = Array.from(studentStats.values());
     if (classFilter !== "all" || dateType === "range") {
       reportData = reportData.filter((item) => item.total > 0);
     }
 
-    // 6. Handle Different Formats
+    // 5. Generate Dynamic Header
+    let headerText = "";
+    let selectedClass = null;
+
+    if (classFilter !== "all") {
+      selectedClass = allClasses.find((c) => c.id == classFilter);
+    }
+
+    if (selectedClass) {
+      // Specific Class Header
+      headerText +=
+        "==================================================================\n";
+      headerText += `ATTENDANCE HISTORY - ${selectedClass.code}: ${selectedClass.name}\n`;
+      headerText += `Department: ${selectedClass.department}\tSemester: ${selectedClass.semester}\n`;
+      headerText += `Faculty: ${selectedClass.faculty}\n`;
+      headerText += `Total Students: ${reportData.length}\n`;
+      headerText +=
+        "==================================================================\n";
+    } else {
+      // Generic / Summary Header
+      headerText +=
+        "==================================================================\n";
+      headerText += `ATTENDANCE REPORT - ${
+        yearFilter === "all" ? "All Years" : yearFilter + " Year"
+      }\n`;
+      headerText += `Department: ${
+        branchFilter === "all" ? "All Branches" : branchFilter
+      }\n`;
+      headerText += `Total Students: ${reportData.length}\n`;
+      headerText +=
+        "==================================================================\n";
+    }
+
+    // 6. Handle Formats
     if (format === "csv" || format === "excel") {
-      let csvContent =
+      let csvContent = headerText + "\n"; // Add header at top
+      csvContent +=
         "Roll No,Name,Department,Year,Semester,Classes Attended,Classes Held,Total Absent,Attendance %,Status\n";
 
       reportData.forEach((item) => {
@@ -2219,7 +2254,6 @@ async function exportAdminHistory(format) {
           item.total > 0 ? Math.round((item.present / item.total) * 100) : 0;
         const status = percentage >= 75 ? "Eligible" : "Shortage";
 
-        // FIX: Using lowercase 'rollno', 'firstname', 'lastname'
         const row = [
           s.rollno,
           `"${s.firstname} ${s.lastname}"`,
@@ -2241,18 +2275,25 @@ async function exportAdminHistory(format) {
       downloadCSV(csvContent, fileName);
       showToast("Download started", "success");
     } else if (format === "json") {
-      const jsonData = reportData.map((item) => ({
-        rollNo: item.student.rollno,
-        name: `${item.student.firstname} ${item.student.lastname}`,
-        department: item.student.department,
-        semester: item.student.semester,
-        attendance: {
-          present: item.present,
-          total: item.total,
-          percentage:
-            item.total > 0 ? Math.round((item.present / item.total) * 100) : 0,
+      const jsonData = {
+        meta: {
+          class: selectedClass ? selectedClass.name : "All",
+          faculty: selectedClass ? selectedClass.faculty : "N/A",
+          generatedAt: new Date().toISOString(),
         },
-      }));
+        data: reportData.map((item) => ({
+          rollNo: item.student.rollno,
+          name: `${item.student.firstname} ${item.student.lastname}`,
+          attendance: {
+            present: item.present,
+            total: item.total,
+            percentage:
+              item.total > 0
+                ? Math.round((item.present / item.total) * 100)
+                : 0,
+          },
+        })),
+      };
 
       const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
         type: "application/json",
@@ -2265,23 +2306,25 @@ async function exportAdminHistory(format) {
       document.body.removeChild(link);
       showToast("JSON Export successful", "success");
     } else if (format === "pdf") {
-      // Simple Print-to-PDF fallback since no PDF library is installed
       const printWindow = window.open("", "_blank");
+
+      // Convert \n to <br> for HTML display
+      const htmlHeader = headerText.replace(/\n/g, "<br>");
+
       let htmlContent = `
         <html>
         <head>
           <title>Attendance Report</title>
           <style>
-            body { font-family: sans-serif; }
+            body { font-family: sans-serif; font-size: 12px; }
+            .header-box { background: #f8f9fa; padding: 15px; border: 1px solid #ddd; margin-bottom: 20px; font-family: monospace; font-size: 14px; white-space: pre-wrap; }
             table { width: 100%; border-collapse: collapse; }
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
             th { background-color: #f2f2f2; }
-            h2 { text-align: center; color: #2c3e50; }
           </style>
         </head>
         <body>
-          <h2>Attendance Report</h2>
-          <p>Generated on: ${new Date().toLocaleString()}</p>
+          <div class="header-box">${htmlHeader}</div>
           <table>
             <thead>
               <tr>
@@ -2296,7 +2339,6 @@ async function exportAdminHistory(format) {
         const s = item.student;
         const percentage =
           item.total > 0 ? Math.round((item.present / item.total) * 100) : 0;
-        // FIX: Using lowercase keys
         htmlContent += `
           <tr>
             <td>${s.rollno}</td>
@@ -2315,15 +2357,14 @@ async function exportAdminHistory(format) {
       printWindow.document.write(htmlContent);
       printWindow.document.close();
       printWindow.focus();
-      // Wait for content to load then print
       setTimeout(() => {
         printWindow.print();
         printWindow.close();
       }, 500);
-      showToast("Opened Print Dialog (Save as PDF)", "success");
+      showToast("Opened Print Dialog", "success");
     }
   } catch (error) {
     console.error("Export Error:", error);
-    showToast("Export failed. Check console for details.", "error");
+    showToast("Export failed. Check console.", "error");
   }
 }
