@@ -1982,3 +1982,207 @@ async function downloadSubjectAttendanceReport() {
 
   showToast(`Downloaded ${classInfo.code} attendance report`, "success");
 }
+
+// =============================================
+// ADMIN ATTENDANCE REPORT FUNCTIONS
+// =============================================
+
+async function loadAdminAttendanceHistory() {
+  const tbody = document.getElementById("adminAttendanceBody");
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;">Loading records...</td></tr>';
+
+  // 1. Get Filter Values
+  const yearFilter = document.getElementById("adminYearFilter").value;
+  const branchFilter = document.getElementById("adminBranchFilter").value;
+  const semesterFilter = document.getElementById("adminSemesterFilter").value;
+  const classFilter = document.getElementById("adminClassFilter").value;
+  
+  // Handle Date Filter
+  let dateType = "all";
+  const dateRadio = document.querySelector('input[name="dateFilterType"]:checked');
+  if (dateRadio) dateType = dateRadio.value;
+  
+  const dateFrom = document.getElementById("adminDateFrom").value;
+  const dateTo = document.getElementById("adminDateTo").value;
+  
+  const statusFilter = document.getElementById("adminStatusFilter").value;
+  const sortBy = document.getElementById("adminSortBy").value;
+
+  // 2. Fetch All Data
+  const [allAttendance, allStudents, allClasses] = await Promise.all([
+    getAll("attendance"),
+    getAll("students"),
+    getAll("classes")
+  ]);
+
+  // 3. Filter Attendance Records
+  let filteredAttendance = allAttendance;
+
+  // Filter by Date Range
+  if (dateType === "range") {
+    if (dateFrom) {
+      filteredAttendance = filteredAttendance.filter(r => r.date >= dateFrom);
+    }
+    if (dateTo) {
+      filteredAttendance = filteredAttendance.filter(r => r.date <= dateTo);
+    }
+  }
+
+  // Filter by Status (Present/Absent)
+  if (statusFilter !== "all") {
+    filteredAttendance = filteredAttendance.filter(r => r.status === statusFilter);
+  }
+
+  // 4. Group Data by Student to Calculate Percentage
+  const studentStats = new Map();
+
+  allStudents.forEach(student => {
+    // Apply Student Filters (Year, Branch, Semester)
+    let isValidStudent = true;
+    
+    // Determine student year (approximate from semester)
+    const studentYear = Math.ceil(student.semester / 2);
+
+    if (yearFilter !== "all" && studentYear != yearFilter) isValidStudent = false;
+    if (branchFilter !== "all" && student.department !== branchFilter) isValidStudent = false;
+    if (semesterFilter !== "all" && student.semester != semesterFilter) isValidStudent = false;
+
+    if (isValidStudent) {
+      studentStats.set(student.id, {
+        student: student,
+        total: 0,
+        present: 0,
+        absent: 0,
+        classIds: new Set()
+      });
+    }
+  });
+
+  // Process Attendance Records
+  filteredAttendance.forEach(record => {
+    // Check if record belongs to a selected Class
+    // FIX: Using lowercase 'classid'
+    if (classFilter !== "all" && record.classid != classFilter) return;
+
+    // Check if record belongs to a valid student (from our filtered list above)
+    // FIX: Using lowercase 'studentid'
+    if (studentStats.has(record.studentid)) {
+      const stats = studentStats.get(record.studentid);
+      stats.total++;
+      if (record.status === 'present') stats.present++;
+      else stats.absent++;
+      stats.classIds.add(record.classid);
+    }
+  });
+
+  // Convert to Array for Sorting and Display
+  let reportData = Array.from(studentStats.values());
+
+  // Remove students with 0 records IF we are looking at specific attendance logs
+  if (classFilter !== "all" || dateType === "range") {
+      reportData = reportData.filter(item => item.total > 0);
+  }
+
+  // 5. Sort Data
+  reportData.sort((a, b) => {
+    const pctA = a.total > 0 ? (a.present / a.total) : 0;
+    const pctB = b.total > 0 ? (b.present / b.total) : 0;
+    
+    // FIX: Using lowercase 'rollno', 'firstname'
+    switch (sortBy) {
+      case 'percentage_desc': return pctB - pctA;
+      case 'percentage_asc': return pctA - pctB;
+      case 'rollno_asc': return (a.student.rollno || "").localeCompare(b.student.rollno || "");
+      case 'rollno_desc': return (b.student.rollno || "").localeCompare(a.student.rollno || "");
+      case 'name_asc': return (a.student.firstname || "").localeCompare(b.student.firstname || "");
+      case 'name_desc': return (b.student.firstname || "").localeCompare(a.student.firstname || "");
+      default: return 0;
+    }
+  });
+
+  // 6. Render Table
+  tbody.innerHTML = "";
+  
+  if (reportData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px;">No records found matching these filters.</td></tr>';
+    updateAdminStats(0, 0, 0, 0);
+    return;
+  }
+
+  reportData.forEach(item => {
+    const s = item.student;
+    const percentage = item.total > 0 ? Math.round((item.present / item.total) * 100) : 0;
+    
+    // Resolve Class Names
+    const classNames = Array.from(item.classIds).map(cid => {
+      const cls = allClasses.find(c => c.id === cid);
+      return cls ? cls.code : 'Unknown';
+    }).join(", ");
+
+    // FIX: Using lowercase 'rollno', 'firstname', 'lastname'
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${s.rollno}</td>
+      <td>${s.firstname} ${s.lastname}</td>
+      <td>${s.department}</td>
+      <td>${s.year}</td>
+      <td>${s.semester}</td>
+      <td><div style="font-size:11px; max-width:150px; overflow:hidden; text-overflow:ellipsis;">${classNames || '-'}</div></td>
+      <td>${item.total}</td>
+      <td>${item.present}</td>
+      <td>${item.absent}</td>
+      <td>
+        <span class="status-badge" style="background:${percentage >= 75 ? '#d4edda' : '#f8d7da'}; color:${percentage >= 75 ? '#155724' : '#721c24'}">
+          ${percentage}%
+        </span>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // 7. Update Statistics Box
+  let totalStudents = reportData.length;
+  let sumPercentage = 0;
+  let above75 = 0;
+  let below75 = 0;
+
+  reportData.forEach(item => {
+    const pct = item.total > 0 ? (item.present / item.total) * 100 : 0;
+    sumPercentage += pct;
+    if (pct >= 75) above75++;
+    else below75++;
+  });
+
+  const avgPct = totalStudents > 0 ? Math.round(sumPercentage / totalStudents) : 0;
+  updateAdminStats(totalStudents, avgPct, above75, below75);
+}
+
+// Helper to update stats UI
+function updateAdminStats(total, avg, above, below) {
+  document.getElementById("statTotalRecords").textContent = total;
+  document.getElementById("statAvgPercentage").textContent = avg + "%";
+  document.getElementById("statAbove75").textContent = above;
+  document.getElementById("statBelow75").textContent = below;
+  document.getElementById("adminRecordCount").textContent = `(${total})`;
+}
+
+// Function to clear filters
+function clearAdminFilters() {
+  document.getElementById("adminYearFilter").value = "all";
+  document.getElementById("adminBranchFilter").value = "all";
+  document.getElementById("adminSemesterFilter").value = "all";
+  document.getElementById("adminClassFilter").value = "all";
+  
+  const allDateRadio = document.querySelector('input[name="dateFilterType"][value="all"]');
+  if(allDateRadio) {
+      allDateRadio.checked = true;
+      if(typeof toggleDateRange === 'function') toggleDateRange();
+  }
+  
+  document.getElementById("adminDateFrom").value = "";
+  document.getElementById("adminDateTo").value = "";
+  document.getElementById("adminStatusFilter").value = "all";
+  document.getElementById("adminSortBy").value = "percentage_desc";
+  
+  showToast("Filters cleared", "info");
+}
