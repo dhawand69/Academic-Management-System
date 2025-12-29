@@ -2817,180 +2817,401 @@ document.addEventListener("DOMContentLoaded", function () {
   }, 1000);
 });
 
-
-
-
 // =============================================
 // BULK IMPORT HANDLERS (ADMIN)
 // =============================================
 
 // Handle Student Bulk Upload
+// =============================================
+// BULK IMPORT HANDLERS (WITH PROGRESS BAR)
+// =============================================
+
+// Handle Student Bulk Upload
 async function handleStudentUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+  const file = event.target.files[0];
+  if (!file) return;
 
-    if (typeof showToast === 'function') showToast("Processing Students file...", "info");
+  const reader = new FileReader();
+  reader.onload = async function (e) {
+    const text = e.target.result;
+    const lines = text.split(/\r\n|\n/).filter((line) => line.trim() !== "");
 
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        const text = e.target.result;
-        // Split by newline and remove empty lines
-        const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== "");
-        
-        // Skip header if present (check if first line contains "roll")
-        const startIdx = lines[0].toLowerCase().includes("roll") ? 1 : 0;
-        
-        let success = 0;
-        let errors = 0;
+    // Skip header check
+    const startIdx = lines[0].toLowerCase().includes("roll") ? 1 : 0;
+    const totalLines = lines.length - startIdx;
 
-        for (let i = startIdx; i < lines.length; i++) {
-            const parts = lines[i].split(",").map(p => p.trim().replace(/['"]+/g, ''));
-            
-            // CSV Format: rollno, firstname, lastname, email, department, year, semester
-            if (parts.length < 3) {
-                errors++; 
-                continue;
-            }
+    showProgressModal("Importing Students...");
 
-            const record = {
-                rollno: parts[0],
-                firstname: parts[1],
-                lastname: parts[2] || "",
-                email: parts[3] || "",
-                department: parts[4] || "General",
-                year: parseInt(parts[5]) || 1,
-                semester: parseInt(parts[6]) || 1,
-                createdat: new Date().toISOString()
-            };
+    let success = 0;
+    let errors = 0;
 
-            // Check for duplicate Roll No
-            const allStudents = await getAll("students");
-            const exists = allStudents.find(s => s.rollno == record.rollno);
+    for (let i = startIdx; i < lines.length; i++) {
+      const parts = lines[i]
+        .split(",")
+        .map((p) => p.trim().replace(/['"]+/g, ""));
 
-            if (exists) {
-                console.warn(`Duplicate Roll No: ${record.rollno}`);
-                errors++;
-            } else {
-                await addRecord("students", record);
-                success++;
-            }
-        }
+      // Update Progress Bar
+      updateProgress(
+        i - startIdx + 1,
+        totalLines,
+        `Processing Roll No: ${parts[0] || "..."}`
+      );
 
-        if (typeof showToast === 'function') {
-            showToast(`Imported ${success} students. ${errors} duplicates/errors.`, success > 0 ? "success" : "warning");
-        }
-        event.target.value = ""; // Reset input
-        
-        // Refresh dashboard if function exists
-        if(typeof updateDashboard === 'function') updateDashboard();
-    };
-    reader.readAsText(file);
+      // Small delay to let UI render the progress bar
+      await new Promise((r) => setTimeout(r, 10));
+
+      if (parts.length < 3) {
+        errors++;
+        continue;
+      }
+
+      const record = {
+        rollno: parts[0],
+        firstname: parts[1],
+        lastname: parts[2] || "",
+        email: parts[3] || "",
+        department: parts[4] || "General",
+        year: parseInt(parts[5]) || 1,
+        semester: parseInt(parts[6]) || 1,
+        createdat: new Date().toISOString(),
+      };
+
+      const allStudents = await getAll("students");
+      const exists = allStudents.find((s) => s.rollno == record.rollno);
+
+      if (exists) {
+        errors++;
+      } else {
+        await addRecord("students", record);
+        success++;
+      }
+    }
+
+    hideProgressModal();
+
+    if (typeof showToast === "function") {
+      showToast(
+        `Imported ${success} students. ${errors} duplicates/errors.`,
+        success > 0 ? "success" : "warning"
+      );
+    }
+    event.target.value = "";
+    if (typeof updateDashboard === "function") updateDashboard();
+  };
+  reader.readAsText(file);
 }
 
 // Handle Faculty Bulk Upload
 async function handleFacultyUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+  const file = event.target.files[0];
+  if (!file) return;
 
-    if (typeof showToast === 'function') showToast("Processing Faculty file...", "info");
+  const reader = new FileReader();
+  reader.onload = async function (e) {
+    const text = e.target.result;
+    const lines = text.split(/\r\n|\n/).filter((line) => line.trim() !== "");
+    const startIdx = lines[0].toLowerCase().includes("facultyid") ? 1 : 0;
+    const totalLines = lines.length - startIdx;
 
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        const text = e.target.result;
-        const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== "");
-        const startIdx = lines[0].toLowerCase().includes("facultyid") ? 1 : 0;
-        
-        let success = 0;
-        let errors = 0;
+    showProgressModal("Importing Faculty...");
 
-        for (let i = startIdx; i < lines.length; i++) {
-            const parts = lines[i].split(",").map(p => p.trim().replace(/['"]+/g, ''));
-            
-            // CSV: facultyid, firstname, lastname, email, department, specialization, password
-            if (parts.length < 3) { errors++; continue; }
+    let success = 0;
+    let errors = 0;
 
-            const record = {
-                facultyid: parts[0],
-                firstname: parts[1],
-                lastname: parts[2] || "",
-                email: parts[3] || "",
-                department: parts[4] || "General",
-                specialization: parts[5] || "",
-                password: parts[6] || "123456", // Default password
-                createdat: new Date().toISOString()
-            };
+    for (let i = startIdx; i < lines.length; i++) {
+      const parts = lines[i]
+        .split(",")
+        .map((p) => p.trim().replace(/['"]+/g, ""));
 
-            const allFaculty = await getAll("faculty");
-            const exists = allFaculty.find(f => f.facultyid == record.facultyid);
+      updateProgress(
+        i - startIdx + 1,
+        totalLines,
+        `Processing Faculty: ${parts[0] || "..."}`
+      );
+      await new Promise((r) => setTimeout(r, 10));
 
-            if (exists) {
-                errors++;
-            } else {
-                await addRecord("faculty", record);
-                success++;
-            }
-        }
+      if (parts.length < 3) {
+        errors++;
+        continue;
+      }
 
-        if (typeof showToast === 'function') {
-            showToast(`Imported ${success} faculty members. ${errors} duplicates/errors.`, success > 0 ? "success" : "warning");
-        }
-        event.target.value = "";
-        
-        if(typeof updateDashboard === 'function') updateDashboard();
-    };
-    reader.readAsText(file);
+      const record = {
+        facultyid: parts[0],
+        firstname: parts[1],
+        lastname: parts[2] || "",
+        email: parts[3] || "",
+        department: parts[4] || "General",
+        specialization: parts[5] || "",
+        password: parts[6] || "123456",
+        createdat: new Date().toISOString(),
+      };
+
+      const allFaculty = await getAll("faculty");
+      const exists = allFaculty.find((f) => f.facultyid == record.facultyid);
+
+      if (exists) {
+        errors++;
+      } else {
+        await addRecord("faculty", record);
+        success++;
+      }
+    }
+
+    hideProgressModal();
+
+    if (typeof showToast === "function") {
+      showToast(
+        `Imported ${success} faculty members. ${errors} duplicates/errors.`,
+        success > 0 ? "success" : "warning"
+      );
+    }
+    event.target.value = "";
+    if (typeof updateDashboard === "function") updateDashboard();
+  };
+  reader.readAsText(file);
 }
 
 // Handle Classes Bulk Upload
 async function handleClassesUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+  const file = event.target.files[0];
+  if (!file) return;
 
-    if (typeof showToast === 'function') showToast("Processing Classes file...", "info");
+  const reader = new FileReader();
+  reader.onload = async function (e) {
+    const text = e.target.result;
+    const lines = text.split(/\r\n|\n/).filter((line) => line.trim() !== "");
+    const startIdx = lines[0].toLowerCase().includes("code") ? 1 : 0;
+    const totalLines = lines.length - startIdx;
 
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        const text = e.target.result;
-        const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== "");
-        const startIdx = lines[0].toLowerCase().includes("code") ? 1 : 0;
-        
-        let success = 0;
-        let errors = 0;
+    showProgressModal("Importing Classes...");
 
-        for (let i = startIdx; i < lines.length; i++) {
-            const parts = lines[i].split(",").map(p => p.trim().replace(/['"]+/g, ''));
-            
-            // CSV: code, name, department, semester, faculty_name, year, credits
-            if (parts.length < 4) { errors++; continue; }
+    let success = 0;
+    let errors = 0;
 
-            const record = {
-                code: parts[0],
-                name: parts[1],
-                department: parts[2],
-                semester: parseInt(parts[3]) || 1,
-                faculty: parts[4] || "TBD",
-                year: parseInt(parts[5]) || 1,
-                credits: parseInt(parts[6]) || 3,
-                createdat: new Date().toISOString()
-            };
+    for (let i = startIdx; i < lines.length; i++) {
+      const parts = lines[i]
+        .split(",")
+        .map((p) => p.trim().replace(/['"]+/g, ""));
 
-            const allClasses = await getAll("classes");
-            const exists = allClasses.find(c => c.code == record.code);
+      updateProgress(
+        i - startIdx + 1,
+        totalLines,
+        `Processing Subject: ${parts[0] || "..."}`
+      );
+      await new Promise((r) => setTimeout(r, 10));
 
-            if (exists) {
-                errors++;
-            } else {
-                await addRecord("classes", record);
-                success++;
-            }
-        }
+      if (parts.length < 4) {
+        errors++;
+        continue;
+      }
 
-        if (typeof showToast === 'function') {
-            showToast(`Imported ${success} classes. ${errors} duplicates/errors.`, success > 0 ? "success" : "warning");
-        }
-        event.target.value = "";
-        
-        if(typeof updateDashboard === 'function') updateDashboard();
-    };
-    reader.readAsText(file);
+      const record = {
+        code: parts[0],
+        name: parts[1],
+        department: parts[2],
+        semester: parseInt(parts[3]) || 1,
+        faculty: parts[4] || "TBD",
+        year: parseInt(parts[5]) || 1,
+        credits: parseInt(parts[6]) || 3,
+        createdat: new Date().toISOString(),
+      };
+
+      const allClasses = await getAll("classes");
+      const exists = allClasses.find((c) => c.code == record.code);
+
+      if (exists) {
+        errors++;
+      } else {
+        await addRecord("classes", record);
+        success++;
+      }
+    }
+
+    hideProgressModal();
+
+    if (typeof showToast === "function") {
+      showToast(
+        `Imported ${success} classes. ${errors} duplicates/errors.`,
+        success > 0 ? "success" : "warning"
+      );
+    }
+    event.target.value = "";
+    if (typeof updateDashboard === "function") updateDashboard();
+  };
+  reader.readAsText(file);
+}
+
+// Handle Faculty Bulk Upload
+async function handleFacultyUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (typeof showToast === "function")
+    showToast("Processing Faculty file...", "info");
+
+  const reader = new FileReader();
+  reader.onload = async function (e) {
+    const text = e.target.result;
+    const lines = text.split(/\r\n|\n/).filter((line) => line.trim() !== "");
+    const startIdx = lines[0].toLowerCase().includes("facultyid") ? 1 : 0;
+
+    let success = 0;
+    let errors = 0;
+
+    for (let i = startIdx; i < lines.length; i++) {
+      const parts = lines[i]
+        .split(",")
+        .map((p) => p.trim().replace(/['"]+/g, ""));
+
+      // CSV: facultyid, firstname, lastname, email, department, specialization, password
+      if (parts.length < 3) {
+        errors++;
+        continue;
+      }
+
+      const record = {
+        facultyid: parts[0],
+        firstname: parts[1],
+        lastname: parts[2] || "",
+        email: parts[3] || "",
+        department: parts[4] || "General",
+        specialization: parts[5] || "",
+        password: parts[6] || "123456", // Default password
+        createdat: new Date().toISOString(),
+      };
+
+      const allFaculty = await getAll("faculty");
+      const exists = allFaculty.find((f) => f.facultyid == record.facultyid);
+
+      if (exists) {
+        errors++;
+      } else {
+        await addRecord("faculty", record);
+        success++;
+      }
+    }
+
+    if (typeof showToast === "function") {
+      showToast(
+        `Imported ${success} faculty members. ${errors} duplicates/errors.`,
+        success > 0 ? "success" : "warning"
+      );
+    }
+    event.target.value = "";
+
+    if (typeof updateDashboard === "function") updateDashboard();
+  };
+  reader.readAsText(file);
+}
+
+// Handle Classes Bulk Upload
+async function handleClassesUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (typeof showToast === "function")
+    showToast("Processing Classes file...", "info");
+
+  const reader = new FileReader();
+  reader.onload = async function (e) {
+    const text = e.target.result;
+    const lines = text.split(/\r\n|\n/).filter((line) => line.trim() !== "");
+    const startIdx = lines[0].toLowerCase().includes("code") ? 1 : 0;
+
+    let success = 0;
+    let errors = 0;
+
+    for (let i = startIdx; i < lines.length; i++) {
+      const parts = lines[i]
+        .split(",")
+        .map((p) => p.trim().replace(/['"]+/g, ""));
+
+      // CSV: code, name, department, semester, faculty_name, year, credits
+      if (parts.length < 4) {
+        errors++;
+        continue;
+      }
+
+      const record = {
+        code: parts[0],
+        name: parts[1],
+        department: parts[2],
+        semester: parseInt(parts[3]) || 1,
+        faculty: parts[4] || "TBD",
+        year: parseInt(parts[5]) || 1,
+        credits: parseInt(parts[6]) || 3,
+        createdat: new Date().toISOString(),
+      };
+
+      const allClasses = await getAll("classes");
+      const exists = allClasses.find((c) => c.code == record.code);
+
+      if (exists) {
+        errors++;
+      } else {
+        await addRecord("classes", record);
+        success++;
+      }
+    }
+
+    if (typeof showToast === "function") {
+      showToast(
+        `Imported ${success} classes. ${errors} duplicates/errors.`,
+        success > 0 ? "success" : "warning"
+      );
+    }
+    event.target.value = "";
+
+    if (typeof updateDashboard === "function") updateDashboard();
+  };
+  reader.readAsText(file);
+}
+
+// =============================================
+// PROGRESS BAR UI HELPERS
+// =============================================
+
+function showProgressModal(title) {
+  // Remove existing if any
+  const existing = document.getElementById("progressModal");
+  if (existing) existing.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "progressModal";
+  modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+        z-index: 9999; backdrop-filter: blur(2px);
+    `;
+
+  modal.innerHTML = `
+        <div style="background: white; padding: 25px; border-radius: 12px; width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #2c3e50;">${title}</h3>
+            <div style="width: 100%; background: #ecf0f1; border-radius: 10px; height: 20px; overflow: hidden; margin-bottom: 10px;">
+                <div id="progressBarFill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3498db, #2ecc71); transition: width 0.3s ease;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px; color: #7f8c8d;">
+                <span id="progressText">Starting...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+        </div>
+    `;
+
+  document.body.appendChild(modal);
+}
+
+function updateProgress(current, total, text) {
+  const percent = Math.round((current / total) * 100);
+  const fill = document.getElementById("progressBarFill");
+  const txt = document.getElementById("progressText");
+  const pct = document.getElementById("progressPercent");
+
+  if (fill) fill.style.width = `${percent}%`;
+  if (txt) txt.textContent = text;
+  if (pct) pct.textContent = `${percent}%`;
+}
+
+function hideProgressModal() {
+  const modal = document.getElementById("progressModal");
+  if (modal) modal.remove();
 }
