@@ -364,13 +364,26 @@ async function checkSession() {
 }
 
 // Handle Login (Admin, Faculty, Student)
+// Handle Login (Fixed: Checks multiple common IDs to prevent crashes)
 async function handleLogin(event, role) {
   event.preventDefault();
+  console.log(`Attempting login for role: ${role}`);
 
   let usernameField, passwordField;
 
   if (role === "admin") {
-    passwordField = document.getElementById("adminPassword");
+    // Try 'adminPassword' or 'admin-password'
+    passwordField =
+      document.getElementById("adminPassword") ||
+      document.getElementById("admin-password");
+
+    if (!passwordField) {
+      console.error(
+        "❌ Error: Admin password field not found. Checked 'adminPassword' and 'admin-password'"
+      );
+      return;
+    }
+
     if (passwordField.value === ADMIN_PASSWORD) {
       completeLogin("admin", {
         role: "admin",
@@ -381,13 +394,31 @@ async function handleLogin(event, role) {
       showToast("Invalid Admin Password", "error");
     }
   } else if (role === "faculty") {
-    usernameField = document.getElementById("facultyId");
-    passwordField = document.getElementById("facultyPassword");
+    // Try common ID variations
+    usernameField =
+      document.getElementById("facultyId") ||
+      document.getElementById("faculty-id") ||
+      document.getElementById("fid");
+    passwordField =
+      document.getElementById("facultyPassword") ||
+      document.getElementById("faculty-password") ||
+      document.getElementById("fpass");
+
+    if (!usernameField || !passwordField) {
+      console.error(
+        "❌ Error: Faculty input fields not found. Check HTML IDs."
+      );
+      showToast("Login Error: Input fields missing", "error");
+      return;
+    }
 
     const allFaculty = await getAll("faculty");
+
+    // FIX: Loose comparison matches string vs number IDs
     const faculty = allFaculty.find(
       (f) =>
-        f.facultyid === usernameField.value &&
+        (f.facultyid == usernameField.value ||
+          f.email === usernameField.value) &&
         f.password === passwordField.value
     );
 
@@ -397,9 +428,22 @@ async function handleLogin(event, role) {
       showToast("Invalid Credentials", "error");
     }
   } else if (role === "student") {
-    usernameField = document.getElementById("studentRegNo");
+    // Try common ID variations for Student Login
+    usernameField =
+      document.getElementById("studentRegNo") ||
+      document.getElementById("student-id") ||
+      document.getElementById("reg-no");
+
+    if (!usernameField) {
+      console.error(
+        "❌ Error: Student Registration field not found. Checked 'studentRegNo', 'student-id', 'reg-no'"
+      );
+      showToast("Login Error: Input field missing", "error");
+      return;
+    }
 
     const allStudents = await getAll("students");
+
     // FIX: Loose comparison for ID matching
     const student = allStudents.find((s) => s.rollno == usernameField.value);
 
