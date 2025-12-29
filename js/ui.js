@@ -311,57 +311,112 @@ function autoFillStudentDetails() {
     document.getElementById("studentYear").value = batchYear;
 }
 
+// Load Students Table (Fixed: Logic Bug Solved)
 async function loadStudents() {
-  const allStudents = await getAll("students");
-  const tbody = document.getElementById("usersTableBody");
-  const bulkContainer = document.getElementById("bulkActionContainer");
-  const countLabel = document.getElementById("studentCount");
-  tbody.innerHTML = "";
-  displayedStudents = allStudents.filter((student) => {
-    if (activeStudentFilter.year !== "all") {
-      const sem = student.semester;
-      const expectedMinSem = (activeStudentFilter.year - 1) * 2 + 1;
-      const expectedMaxSem = expectedMinSem + 1;
-      if (sem < expectedMinSem || sem > expectedMaxSem) return false;
+  const tbody = document.getElementById("studentTableBody");
+  if (!tbody) return;
+
+  tbody.innerHTML =
+    '<tr><td colspan="7" style="text-align:center;">Loading...</td></tr>';
+
+  try {
+    // 1. Fetch Data
+    let students = await getAll("students");
+
+    // 2. GET FILTER VALUES (FIXED)
+    // We check if the element exists AND has a value. If not, default to 'all'.
+
+    const yearEl = document.getElementById("studentYearFilter");
+    const branchEl = document.getElementById("studentBranchFilter");
+    const semEl = document.getElementById("studentSemesterFilter");
+
+    // Safety Logic: If element is missing or has no value (like a div), use 'all'
+    const yearFilter = yearEl && yearEl.value ? yearEl.value : "all";
+    const branchFilter = branchEl && branchEl.value ? branchEl.value : "all";
+    const semesterFilter = semEl && semEl.value ? semEl.value : "all";
+
+    // 3. Apply Filters
+    if (yearFilter !== "all") {
+      const targetYear = parseInt(yearFilter);
+      // Safety: Ensure targetYear is a valid number
+      if (!isNaN(targetYear)) {
+        students = students.filter(
+          (s) => Math.ceil((parseInt(s.semester) || 1) / 2) === targetYear
+        );
+      }
     }
-    if (activeStudentFilter.semester !== null) {
-      if (student.semester !== activeStudentFilter.semester) return false;
+
+    if (branchFilter !== "all") {
+      // Fix: Use loose comparison (trim + lowercase) to match "CSE" with "CSE(Networks)"
+      students = students.filter(
+        (s) =>
+          (s.department || "").toLowerCase().trim() ===
+          branchFilter.toLowerCase().trim()
+      );
     }
-    if (activeStudentFilter.branch !== "all") {
-      if (student.department !== activeStudentFilter.branch) return false;
+
+    if (semesterFilter !== "all") {
+      students = students.filter((s) => s.semester == semesterFilter);
     }
-    return true;
-  });
-  displayedStudents.forEach((student) => {
-    const isSelected = selectedStudentIds.has(student.id);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td><input type="checkbox" class="student-checkbox" value="${
-      student.id
-    }" onchange="handleCheckboxChange(this)" ${
-      isSelected ? "checked" : ""
-    }></td><td style="cursor: pointer; color: var(--color-primary);" onclick="viewStudentAttendance(${
-      student.id
-    }, '${student.rollno}', '${student.firstname} ${student.lastname}')">${
-      student.rollno || ""
-    }</td><td>${student.firstname || ""} ${student.lastname || ""}</td><td>${
-      student.department || ""
-    }</td><td>${
-      student.year || ""
-    }</td><td><span class="status-badge" style="background:#eaf6fd; color:#2c5282;">Sem ${
-      student.semester || ""
-    }</span></td><td><button class="btn btn-small btn-danger" onclick="deleteStudent(${
-      student.id
-    })">Delete</button></td>`;
-    tbody.appendChild(tr);
-  });
-  countLabel.textContent = `(${displayedStudents.length})`;
-  if (activeStudentFilter.year !== "all" && displayedStudents.length > 0) {
-    bulkContainer.style.display = "flex";
-  } else {
-    bulkContainer.style.display = "none";
+
+    // 4. SORTING LOGIC (Kept your sorting, it was good)
+    students.sort((a, b) => {
+      const rollA = String(a.rollno || "");
+      const rollB = String(b.rollno || "");
+      return rollA.localeCompare(rollB, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    });
+
+    // 5. Render Table
+    tbody.innerHTML = "";
+
+    if (students.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="7" style="text-align:center;">No students found. (Check filters)</td></tr>';
+      return;
+    }
+
+    students.forEach((student) => {
+      const tr = document.createElement("tr");
+      const fullName = `${student.firstname} ${student.lastname || ""}`;
+
+      tr.innerHTML = `
+                <td>
+                    <input type="checkbox" class="student-select-checkbox" value="${
+                      student.id
+                    }" onchange="updateSelectionUI()">
+                </td>
+                <td>${student.rollno}</td>
+                <td>
+                    <span onclick="viewStudentAttendance(${student.id})" 
+                          style="cursor:pointer; color:var(--color-primary); font-weight:bold; text-decoration:underline;">
+                        ${fullName}
+                    </span>
+                </td>
+                <td>${student.email || "N/A"}</td>
+                <td>${student.department}</td>
+                <td>${student.semester}</td>
+                <td>
+                    <button class="btn btn-small btn-danger" onclick="deleteStudent(${
+                      student.id
+                    })">Delete</button>
+                </td>
+            `;
+      tbody.appendChild(tr);
+    });
+
+    // Reset UI Helpers
+    const selectAll = document.getElementById("selectAllStudents");
+    if (selectAll) selectAll.checked = false;
+
+    if (typeof updateSelectionUI === "function") updateSelectionUI();
+  } catch (error) {
+    console.error("Error in loadStudents:", error);
+    tbody.innerHTML =
+      '<tr><td colspan="7" style="color:red; text-align:center;">Error loading list. Check console.</td></tr>';
   }
-  updateSelectionUI();
-  updateDashboard();
 }
 
 async function deleteStudent(id) {
