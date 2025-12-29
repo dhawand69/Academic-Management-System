@@ -312,6 +312,7 @@ function autoFillStudentDetails() {
 }
 
 // Load Students Table (Fixed: Sorts by Roll No Ascending)
+// Load Students Table (Fixed: Robust Filtering & Sorting)
 async function loadStudents() {
   const tbody = document.getElementById("studentTableBody");
   if (!tbody) return;
@@ -319,83 +320,107 @@ async function loadStudents() {
   tbody.innerHTML =
     '<tr><td colspan="7" style="text-align:center;">Loading...</td></tr>';
 
-  // 1. Fetch Data
-  let students = await getAll("students");
+  try {
+    // 1. Fetch Data
+    let students = await getAll("students");
+    console.log(`Total Students Fetched: ${students.length}`);
 
-  // 2. Get Filter Values
-  const yearFilter = document.getElementById("studentYearFilter").value;
-  const branchFilter = document.getElementById("studentBranchFilter").value;
-  const semesterFilter = document.getElementById("studentSemesterFilter").value;
+    // 2. Get Filter Values (Safety Check)
+    const yearEl = document.getElementById("studentYearFilter");
+    const branchEl = document.getElementById("studentBranchFilter");
+    const semEl = document.getElementById("studentSemesterFilter");
 
-  // 3. Apply Filters
-  if (yearFilter !== "all") {
-    const targetYear = parseInt(yearFilter);
-    students = students.filter((s) => Math.ceil(s.semester / 2) === targetYear);
-  }
-  if (branchFilter !== "all") {
-    students = students.filter((s) => s.department === branchFilter);
-  }
-  if (semesterFilter !== "all") {
-    students = students.filter((s) => s.semester == semesterFilter);
-  }
+    // Default to 'all' if element is missing
+    const yearFilter = yearEl ? yearEl.value : "all";
+    const branchFilter = branchEl ? branchEl.value : "all";
+    const semesterFilter = semEl ? semEl.value : "all";
 
-  // 4. SORTING LOGIC (The Fix)
-  // Sorts by Roll No in ascending order (Numeric aware)
-  students.sort((a, b) => {
-    const rollA = String(a.rollno || "");
-    const rollB = String(b.rollno || "");
-    return rollA.localeCompare(rollB, undefined, {
-      numeric: true,
-      sensitivity: "base",
+    // 3. Apply Filters (Case-Insensitive)
+    if (yearFilter !== "all") {
+      const targetYear = parseInt(yearFilter);
+      students = students.filter(
+        (s) => Math.ceil((parseInt(s.semester) || 1) / 2) === targetYear
+      );
+    }
+
+    if (branchFilter !== "all") {
+      // FIX: Normalize both values to lowercase for better matching
+      // e.g., "CSE" matches "cse" or "CSE(Networks)" matches "CSE(Networks)"
+      students = students.filter(
+        (s) =>
+          (s.department || "").trim().toLowerCase() ===
+          branchFilter.trim().toLowerCase()
+      );
+    }
+
+    if (semesterFilter !== "all") {
+      students = students.filter((s) => s.semester == semesterFilter);
+    }
+
+    console.log(`Students after filtering: ${students.length}`);
+
+    // 4. SORTING LOGIC (Safe)
+    students.sort((a, b) => {
+      const rollA = String(a.rollno || "").toLowerCase();
+      const rollB = String(b.rollno || "").toLowerCase();
+      return rollA.localeCompare(rollB, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
     });
-  });
 
-  // 5. Render Table
-  tbody.innerHTML = "";
+    // 5. Render Table
+    tbody.innerHTML = "";
 
-  if (students.length === 0) {
-    tbody.innerHTML =
-      '<tr><td colspan="7" style="text-align:center;">No students found matching filters.</td></tr>';
-    return;
+    if (students.length === 0) {
+      tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align:center; padding: 20px; color: #7f8c8d;">
+                        No students found. <br>
+                        <small>Check if the selected Branch (currently: <b>${branchFilter}</b>) matches your student data.</small>
+                    </td>
+                </tr>`;
+      return;
+    }
+
+    students.forEach((student) => {
+      const tr = document.createElement("tr");
+      const fullName = `${student.firstname} ${student.lastname || ""}`;
+
+      tr.innerHTML = `
+                <td>
+                    <input type="checkbox" class="student-select-checkbox" value="${
+                      student.id
+                    }" onchange="updateSelectionUI()">
+                </td>
+                <td>${student.rollno || "N/A"}</td>
+                <td>
+                    <span onclick="viewStudentAttendance(${student.id})" 
+                          style="cursor:pointer; color:var(--color-primary); font-weight:bold; text-decoration:underline;">
+                        ${fullName}
+                    </span>
+                </td>
+                <td>${student.email || "N/A"}</td>
+                <td>${student.department || "General"}</td>
+                <td>${student.semester || 1}</td>
+                <td>
+                    <button class="btn btn-small btn-danger" onclick="deleteStudent(${
+                      student.id
+                    })">Delete</button>
+                </td>
+            `;
+      tbody.appendChild(tr);
+    });
+
+    // Update UI helpers
+    const selectAll = document.getElementById("selectAllStudents");
+    if (selectAll) selectAll.checked = false;
+
+    if (typeof updateSelectionUI === "function") updateSelectionUI();
+  } catch (error) {
+    console.error("Error loading students:", error);
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Error loading data. Check console.</td></tr>`;
   }
-
-  students.forEach((student) => {
-    const tr = document.createElement("tr");
-
-    // FIX: Added 'onclick' to name for quick access to details
-    const fullName = `${student.firstname} ${student.lastname}`;
-
-    tr.innerHTML = `
-            <td>
-                <input type="checkbox" class="student-select-checkbox" value="${
-                  student.id
-                }" onchange="updateSelectionUI()">
-            </td>
-            <td>${student.rollno}</td>
-            <td>
-                <span onclick="viewStudentAttendance(${student.id})" 
-                      style="cursor:pointer; color:var(--color-primary); font-weight:bold; text-decoration:underline;">
-                    ${fullName}
-                </span>
-            </td>
-            <td>${student.email || "N/A"}</td>
-            <td>${student.department}</td>
-            <td>${student.semester}</td>
-            <td>
-                <button class="btn btn-small btn-danger" onclick="deleteStudent(${
-                  student.id
-                })">Delete</button>
-            </td>
-        `;
-    tbody.appendChild(tr);
-  });
-
-  // Reset "Select All" checkbox state
-  const selectAll = document.getElementById("selectAllStudents");
-  if (selectAll) selectAll.checked = false;
-
-  // Update bulk action buttons visibility
-  if (typeof updateSelectionUI === "function") updateSelectionUI();
 }
 
 async function deleteStudent(id) {
