@@ -132,21 +132,371 @@
                     <h2 class="section-title">👥 Students</h2>
 
                     <!-- New Filter Dashboard -->
-                    <div class="filter-container">
-                        <div class="filter-group">
-                            <span class="filter-label">🎓 Select Academic Year:</span>
-                            <div class="filter-btn-group" id="yearFilterGroup">
-                                <button class="filter-btn active" onclick="filterStudents('all')">All</button>
-                                <button class="filter-btn" onclick="filterStudents(1)">1st Year</button>
-                                <button class="filter-btn" onclick="filterStudents(2)">2nd Year</button>
-                                <button class="filter-btn" onclick="filterStudents(3)">3rd Year</button>
-                                <button class="filter-btn" onclick="filterStudents(4)">4th Year</button>
+                    <div class="filter-wrapper"
+                        style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef;">
+
+                        <div style="margin-bottom: 15px;">
+                            <label style="display:block; margin-bottom:5px; font-weight:600; color:#2c3e50;">📅 Select
+                                Academic Year:</label>
+                            <div class="btn-group" id="studentYearBtnGroup">
+                                <button class="btn btn-primary active" onclick="setStudentYear('all', this)">All
+                                    Years</button>
+                                <button class="btn btn-secondary" onclick="setStudentYear('1', this)">1st Year</button>
+                                <button class="btn btn-secondary" onclick="setStudentYear('2', this)">2nd Year</button>
+                                <button class="btn btn-secondary" onclick="setStudentYear('3', this)">3rd Year</button>
+                                <button class="btn btn-secondary" onclick="setStudentYear('4', this)">4th Year</button>
                             </div>
                         </div>
 
-                        <div class="filter-group" style="margin-top: 15px;">
-                            <span class="filter-label">🏫 Select Branch:</span>
-                            <select id="branchFilterSelect" onchange="filterByBranch(this.value)" class="branch-select">
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; color:#2c3e50;">🏫
+                                    Branch:</label>
+                                <select id="studentBranchFilter" class="form-control"
+                                    onchange="setStudentBranch(this.value)">
+                                    <option value="all">-- All Branches --</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; color:#2c3e50;">🎓
+                                    Semester:</label>
+                                <select id="studentSemesterFilter" class="form-control"
+                                    onchange="setStudentSemester(this.value)">
+                                    <option value="all">-- All Semesters --</option>
+                                    <option value="1">Sem 1</option>
+                                    <option value="2">Sem 2</option>
+                                    <option value="3">Sem 3</option>
+                                    <option value="4">Sem 4</option>
+                                    <option value="5">Sem 5</option>
+                                    <option value="6">Sem 6</option>
+                                    <option value="7">Sem 7</option>
+                                    <option value="8">Sem 8</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group" style="margin-top: 15px;">
+                        <span class="filter-label">🏫 Select Branch:</span>
+                        <select id="branchFilterSelect" onchange="filterByBranch(this.value)" class="branch-select">
+                            <option value="all">All Branches</option>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Civil">Civil</option>
+                            <option value="Mechanical">Mechanical</option>
+                            <option value="Electrical">Electrical</option>
+                            <option value="ECE">ECE</option>
+                            <option value="CSE(Cyber Security)">CSE(Cyber Security)</option>
+                            <option value="CSE(Networks)">CSE(Networks)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group" id="semesterFilterGroup" style="display:none;">
+                        <span class="filter-label">📅 Select Semester:</span>
+                        <div class="filter-btn-group" id="semesterButtons">
+                            <!-- Dynamic buttons -->
+                        </div>
+                    </div>
+
+                    <!-- Select All Banner -->
+                    <div id="selectAllBanner" class="selection-prompt" style="display:none;">
+                        <span id="selectAllText">You have selected 4 students.</span>
+                        <button onclick="selectAllListed()">Select all <span id="selectAllCount">0</span> listed
+                            students</button>
+                    </div>
+
+                    <div id="bulkActionContainer" class="bulk-action-bar" style="display:none;">
+                        <div class="bulk-control-group">
+                            <strong>🚀 Increment:</strong>
+                            <button class="btn btn-warning" onclick="promoteFilteredStudents()">
+                                +1 Sem <span class="action-target-text">All Listed</span>
+                            </button>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="bulk-control-group">
+                            <strong>📅 Set Exact Sem:</strong>
+                            <select id="bulkSemSelect" class="semester-select">
+                                <option value="1">Sem 1</option>
+                                <option value="2">Sem 2</option>
+                                <option value="3">Sem 3</option>
+                                <option value="4">Sem 4</option>
+                                <option value="5">Sem 5</option>
+                                <option value="6">Sem 6</option>
+                                <option value="7">Sem 7</option>
+                                <option value="8">Sem 8</option>
+                            </select>
+                            <button class="btn btn-info" onclick="setBulkSemester()">Apply to <span
+                                    class="action-target-text">All Listed</span></button>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="bulk-control-group">
+                            <strong>🗑️ Actions:</strong>
+                            <button class="btn btn-danger" onclick="deleteFilteredStudents()">Delete <span
+                                    class="action-target-text">Listed</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-header">
+                    <h3>Student List <span id="studentCount" class="count-badge">(0)</span></h3>
+                    <button class="btn btn-primary" onclick="openModal('addUserModal')">+ Add Student</button>
+                </div>
+
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="masterCheckbox" onclick="toggleSelectAll()"></th>
+                            <th>Roll No</th>
+                            <th>Name</th>
+                            <th>Dept</th>
+                            <th>Year</th>
+                            <th>Sem</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Faculty Tab -->
+            <div id="adminFaculty" class="tab-content">
+                <h2 class="section-title">👨‍🏫 Faculty Management</h2>
+
+                <div class="filter-container">
+                    <div class="filter-group">
+                        <span class="filter-label">🏢 Filter by Branch:</span>
+                        <select id="facultyBranchFilter" onchange="loadFaculty()" class="branch-select">
+                            <option value="all">All Departments</option>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Civil">Civil</option>
+                            <option value="Mechanical">Mechanical</option>
+                            <option value="Electrical">Electrical</option>
+                            <option value="ECE">ECE</option>
+                            <option value="CSE(Cyber Security)">CSE(Cyber Security)</option>
+                            <option value="CSE(Networks)">CSE(Networks)</option>
+                            <option value="Applied Science">Applied Science</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="openModal('addFacultyModal')">+ Add Faculty</button>
+                    <button class="btn btn-warning" onclick="openFacultyPasswordResetModal()">🔑 Reset Faculty
+                        Password</button>
+                </div>
+
+                <table id="facultyTable">
+                    <thead>
+                        <tr>
+                            <th>Faculty ID</th>
+                            <th>Name</th>
+                            <th>Assigned Classes</th>
+                            <th>Department</th>
+                            <th>Specialization</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="facultyTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Classes Tab -->
+            <div id="adminClasses" class="tab-content">
+                <h2 class="section-title">🏫 Classes & Subjects</h2>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="openModal('addClassModal')">+ Add Class</button>
+                    <button class="btn btn-success" onclick="openBatchClassModal()">📂 Batch Class Creator</button>
+                </div>
+
+                <!-- Class Filters -->
+                <div class="filter-container">
+                    <div class="filter-group">
+                        <span class="filter-label">🎓 Filter by Year:</span>
+                        <div class="filter-btn-group" id="classYearFilterGroup">
+                            <button class="filter-btn active" onclick="filterClasses('all')">All</button>
+                            <button class="filter-btn" onclick="filterClasses(1)">1st Year</button>
+                            <button class="filter-btn" onclick="filterClasses(2)">2nd Year</button>
+                            <button class="filter-btn" onclick="filterClasses(3)">3rd Year</button>
+                            <button class="filter-btn" onclick="filterClasses(4)">4th Year</button>
+                        </div>
+                    </div>
+
+                    <div class="filter-group" id="classSemesterFilterGroup" style="display:none;">
+                        <span class="filter-label">📅 Filter by Semester:</span>
+                        <div class="filter-btn-group" id="classSemesterButtons">
+                            <!-- Dynamic buttons -->
+                        </div>
+                    </div>
+                </div>
+
+                <table id="classesTable">
+                    <thead>
+                        <tr>
+                            <th>Class Code</th>
+                            <th>Course Name</th>
+                            <th>Department</th>
+                            <th>Semester</th>
+                            <th>Faculty</th>
+                            <th>Year</th>
+                            <th>Credits</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="classesTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Years & Semesters Tab -->
+            <div id="adminYears" class="tab-content">
+                <h2 class="section-title">📅 Years & Semesters</h2>
+                <button class="btn btn-primary" onclick="openModal('addYearModal')">+ Add Academic Year</button>
+
+                <div id="yearsContainer"></div>
+
+                <h3 class="subsection-title">Add Custom Semester</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Year:</label>
+                        <input type="number" id="customYearInput" placeholder="e.g., 2024">
+                    </div>
+                    <div class="form-group">
+                        <label>Semester Number:</label>
+                        <input type="number" id="customSemesterInput" placeholder="e.g., 1-8" min="1" max="8">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-success" onclick="addCustomSemester()">Add Semester</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Import Tab -->
+            <div id="adminBulkImport" class="tab-content">
+                <h2 class="section-title">📤 Bulk Import</h2>
+
+                <div class="alert alert-info">
+                    ℹ️ Import multiple records at once from CSV files. Download templates below and fill with your
+                    data.
+                </div>
+
+                <div class="template-section">
+                    <h3>📥 Download Templates</h3>
+                    <div class="template-buttons">
+                        <button class="btn btn-secondary" onclick="downloadTemplate('students')">📥 Students
+                            Template</button>
+                        <button class="btn btn-secondary" onclick="downloadTemplate('faculty')">📥 Faculty
+                            Template</button>
+                        <button class="btn btn-secondary" onclick="downloadTemplate('classes')">📥 Classes
+                            Template</button>
+                        <button class="btn btn-warning" onclick="downloadCompleteDbTemplate()">📥 Complete DB
+                            Template</button>
+                    </div>
+                </div>
+
+                <!-- Students Import -->
+                <h3>📚 Import Students (CSV)</h3>
+                <div class="file-upload-area" id="studentUploadArea"
+                    onclick="document.getElementById('studentFile').click()">
+                    <div class="upload-icon">📄</div>
+                    <p><strong>Click to upload or drag & drop</strong></p>
+                    <p class="upload-hint">CSV file only</p>
+                    <input type="file" id="studentFile" accept=".csv" style="display:none;"
+                        onchange="handleStudentUpload(event)">
+                </div>
+                <div class="import-progress" id="studentProgress">
+                    <div>Importing students...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="studentProgressBar" style="width: 0%">0%</div>
+                    </div>
+                </div>
+
+                <!-- Faculty Import -->
+                <h3>👥 Import Faculty (CSV)</h3>
+                <div class="file-upload-area" id="facultyUploadArea"
+                    onclick="document.getElementById('facultyFile').click()">
+                    <div class="upload-icon">📄</div>
+                    <p><strong>Click to upload or drag & drop</strong></p>
+                    <p class="upload-hint">CSV file only</p>
+                    <input type="file" id="facultyFile" accept=".csv" style="display:none;"
+                        onchange="handleFacultyUpload(event)">
+                </div>
+                <div class="import-progress" id="facultyProgress">
+                    <div>Importing faculty...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="facultyProgressBar" style="width: 0%">0%</div>
+                    </div>
+                </div>
+
+                <!-- Classes Import -->
+                <h3>🏫 Import Classes (CSV)</h3>
+                <div class="file-upload-area" id="classesUploadArea"
+                    onclick="document.getElementById('classesFile').click()">
+                    <div class="upload-icon">📄</div>
+                    <p><strong>Click to upload or drag & drop</strong></p>
+                    <p class="upload-hint">CSV file only</p>
+                    <input type="file" id="classesFile" accept=".csv" style="display:none;"
+                        onchange="handleClassesUpload(event)">
+                </div>
+                <div class="import-progress" id="classesProgress">
+                    <div>Importing classes...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="classesProgressBar" style="width: 0%">0%</div>
+                    </div>
+                </div>
+
+                <!-- Complete Database Import -->
+                <div class="complete-import-section">
+                    <h3>🔁 Complete Database Import (ZIP/JSON)</h3>
+                    <div class="alert alert-info">
+                        ℹ️ Import a complete database backup ZIP file or JSON file. This will restore all data
+                        including attendance records.
+                        <strong>Warning:</strong> This will replace existing data.
+                    </div>
+
+                    <div class="file-upload-area" id="completeDbUploadArea"
+                        onclick="document.getElementById('completeDbFile').click()">
+                        <div class="upload-icon">📦</div>
+                        <p><strong>Click to upload complete database backup</strong></p>
+                        <p class="upload-hint">ZIP file or JSON backup</p>
+                        <input type="file" id="completeDbFile" accept=".zip,.json,.ZIP,.JSON" style="display:none;"
+                            onchange="handleCompleteDbUpload(event)">
+                    </div>
+
+                    <div class="import-progress" id="completeDbProgress">
+                        <div>Importing complete database...</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="completeDbProgressBar" style="width: 0%">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance History Tab -->
+            <div id="adminAttendanceHistory" class="tab-content">
+                <h2 class="section-title">📊 Attendance History Reports</h2>
+
+                <div class="filter-container">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Select Year:</label>
+                            <select id="adminYearFilter">
+                                <option value="all">All Years</option>
+                                <option value="1">1st Year</option>
+                                <option value="2">2nd Year</option>
+                                <option value="3">3rd Year</option>
+                                <option value="4">4th Year</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Select Branch:</label>
+                            <select id="adminBranchFilter">
                                 <option value="all">All Branches</option>
                                 <option value="Computer Science">Computer Science</option>
                                 <option value="Civil">Civil</option>
@@ -158,788 +508,465 @@
                             </select>
                         </div>
 
-                        <div class="filter-group" id="semesterFilterGroup" style="display:none;">
-                            <span class="filter-label">📅 Select Semester:</span>
-                            <div class="filter-btn-group" id="semesterButtons">
-                                <!-- Dynamic buttons -->
-                            </div>
-                        </div>
-
-                        <!-- Select All Banner -->
-                        <div id="selectAllBanner" class="selection-prompt" style="display:none;">
-                            <span id="selectAllText">You have selected 4 students.</span>
-                            <button onclick="selectAllListed()">Select all <span id="selectAllCount">0</span> listed
-                                students</button>
-                        </div>
-
-                        <div id="bulkActionContainer" class="bulk-action-bar" style="display:none;">
-                            <div class="bulk-control-group">
-                                <strong>🚀 Increment:</strong>
-                                <button class="btn btn-warning" onclick="promoteFilteredStudents()">
-                                    +1 Sem <span class="action-target-text">All Listed</span>
-                                </button>
-                            </div>
-
-                            <div class="divider"></div>
-
-                            <div class="bulk-control-group">
-                                <strong>📅 Set Exact Sem:</strong>
-                                <select id="bulkSemSelect" class="semester-select">
-                                    <option value="1">Sem 1</option>
-                                    <option value="2">Sem 2</option>
-                                    <option value="3">Sem 3</option>
-                                    <option value="4">Sem 4</option>
-                                    <option value="5">Sem 5</option>
-                                    <option value="6">Sem 6</option>
-                                    <option value="7">Sem 7</option>
-                                    <option value="8">Sem 8</option>
-                                </select>
-                                <button class="btn btn-info" onclick="setBulkSemester()">Apply to <span
-                                        class="action-target-text">All Listed</span></button>
-                            </div>
-
-                            <div class="divider"></div>
-
-                            <div class="bulk-control-group">
-                                <strong>🗑️ Actions:</strong>
-                                <button class="btn btn-danger" onclick="deleteFilteredStudents()">Delete <span
-                                        class="action-target-text">Listed</span></button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="table-header">
-                        <h3>Student List <span id="studentCount" class="count-badge">(0)</span></h3>
-                        <button class="btn btn-primary" onclick="openModal('addUserModal')">+ Add Student</button>
-                    </div>
-
-                    <table id="usersTable">
-                        <thead>
-                            <tr>
-                                <th><input type="checkbox" id="masterCheckbox" onclick="toggleSelectAll()"></th>
-                                <th>Roll No</th>
-                                <th>Name</th>
-                                <th>Dept</th>
-                                <th>Year</th>
-                                <th>Sem</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody">
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Faculty Tab -->
-                <div id="adminFaculty" class="tab-content">
-                    <h2 class="section-title">👨‍🏫 Faculty Management</h2>
-
-                    <div class="filter-container">
-                        <div class="filter-group">
-                            <span class="filter-label">🏢 Filter by Branch:</span>
-                            <select id="facultyBranchFilter" onchange="loadFaculty()" class="branch-select">
-                                <option value="all">All Departments</option>
-                                <option value="Computer Science">Computer Science</option>
-                                <option value="Civil">Civil</option>
-                                <option value="Mechanical">Mechanical</option>
-                                <option value="Electrical">Electrical</option>
-                                <option value="ECE">ECE</option>
-                                <option value="CSE(Cyber Security)">CSE(Cyber Security)</option>
-                                <option value="CSE(Networks)">CSE(Networks)</option>
-                                <option value="Applied Science">Applied Science</option>
+                        <div class="form-group">
+                            <label>Select Semester:</label>
+                            <select id="adminSemesterFilter">
+                                <option value="all">All Semesters</option>
+                                <option value="1">Semester 1</option>
+                                <option value="2">Semester 2</option>
+                                <option value="3">Semester 3</option>
+                                <option value="4">Semester 4</option>
+                                <option value="5">Semester 5</option>
+                                <option value="6">Semester 6</option>
+                                <option value="7">Semester 7</option>
+                                <option value="8">Semester 8</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="action-buttons">
-                        <button class="btn btn-primary" onclick="openModal('addFacultyModal')">+ Add Faculty</button>
-                        <button class="btn btn-warning" onclick="openFacultyPasswordResetModal()">🔑 Reset Faculty
-                            Password</button>
-                    </div>
-
-                    <table id="facultyTable">
-                        <thead>
-                            <tr>
-                                <th>Faculty ID</th>
-                                <th>Name</th>
-                                <th>Assigned Classes</th>
-                                <th>Department</th>
-                                <th>Specialization</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="facultyTableBody">
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Classes Tab -->
-                <div id="adminClasses" class="tab-content">
-                    <h2 class="section-title">🏫 Classes & Subjects</h2>
-                    <div class="action-buttons">
-                        <button class="btn btn-primary" onclick="openModal('addClassModal')">+ Add Class</button>
-                        <button class="btn btn-success" onclick="openBatchClassModal()">📂 Batch Class Creator</button>
-                    </div>
-
-                    <!-- Class Filters -->
-                    <div class="filter-container">
-                        <div class="filter-group">
-                            <span class="filter-label">🎓 Filter by Year:</span>
-                            <div class="filter-btn-group" id="classYearFilterGroup">
-                                <button class="filter-btn active" onclick="filterClasses('all')">All</button>
-                                <button class="filter-btn" onclick="filterClasses(1)">1st Year</button>
-                                <button class="filter-btn" onclick="filterClasses(2)">2nd Year</button>
-                                <button class="filter-btn" onclick="filterClasses(3)">3rd Year</button>
-                                <button class="filter-btn" onclick="filterClasses(4)">4th Year</button>
-                            </div>
-                        </div>
-
-                        <div class="filter-group" id="classSemesterFilterGroup" style="display:none;">
-                            <span class="filter-label">📅 Filter by Semester:</span>
-                            <div class="filter-btn-group" id="classSemesterButtons">
-                                <!-- Dynamic buttons -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <table id="classesTable">
-                        <thead>
-                            <tr>
-                                <th>Class Code</th>
-                                <th>Course Name</th>
-                                <th>Department</th>
-                                <th>Semester</th>
-                                <th>Faculty</th>
-                                <th>Year</th>
-                                <th>Credits</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="classesTableBody">
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Years & Semesters Tab -->
-                <div id="adminYears" class="tab-content">
-                    <h2 class="section-title">📅 Years & Semesters</h2>
-                    <button class="btn btn-primary" onclick="openModal('addYearModal')">+ Add Academic Year</button>
-
-                    <div id="yearsContainer"></div>
-
-                    <h3 class="subsection-title">Add Custom Semester</h3>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Year:</label>
-                            <input type="number" id="customYearInput" placeholder="e.g., 2024">
+                            <label>Select Class:</label>
+                            <select id="adminClassFilter">
+                                <option value="all">All Classes</option>
+                            </select>
                         </div>
+
                         <div class="form-group">
-                            <label>Semester Number:</label>
-                            <input type="number" id="customSemesterInput" placeholder="e.g., 1-8" min="1" max="8">
+                            <label>Date Filter:</label>
+                            <div class="radio-group">
+                                <label>
+                                    <input type="radio" name="dateFilterType" value="all" checked
+                                        onchange="toggleDateRange()">
+                                    <span>All Records</span>
+                                </label>
+                                <label>
+                                    <input type="radio" name="dateFilterType" value="range"
+                                        onchange="toggleDateRange()">
+                                    <span>Date Range</span>
+                                </label>
+                            </div>
+                            <div id="dateRangeInputs" class="date-range-inputs" style="display: none;">
+                                <input type="date" id="adminDateFrom">
+                                <span class="range-separator">to</span>
+                                <input type="date" id="adminDateTo">
+                            </div>
                         </div>
+
                         <div class="form-group">
+                            <label>Status Filter:</label>
+                            <select id="adminStatusFilter">
+                                <option value="all">All Status</option>
+                                <option value="present">Present Only</option>
+                                <option value="absent">Absent Only</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sort By:</label>
+                            <select id="adminSortBy">
+                                <option value="percentage_desc">Percentage (High to Low)</option>
+                                <option value="percentage_asc">Percentage (Low to High)</option>
+                                <option value="rollno_asc">Roll No (Ascending)</option>
+                                <option value="rollno_desc">Roll No (Descending)</option>
+                                <option value="name_asc">Name (A-Z)</option>
+                                <option value="name_desc">Name (Z-A)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group action-buttons">
                             <label>&nbsp;</label>
-                            <button class="btn btn-success" onclick="addCustomSemester()">Add Semester</button>
+                            <button class="btn btn-primary" onclick="loadAdminAttendanceHistory()">📊 Load
+                                Attendance</button>
+                            <button class="btn btn-info" onclick="loadAdminAttendanceHistory()">🔄 Refresh</button>
+                            <button class="btn btn-secondary" onclick="clearAdminFilters()">🧹 Clear
+                                Filters</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Bulk Import Tab -->
-                <div id="adminBulkImport" class="tab-content">
-                    <h2 class="section-title">📤 Bulk Import</h2>
-
-                    <div class="alert alert-info">
-                        ℹ️ Import multiple records at once from CSV files. Download templates below and fill with your
-                        data.
-                    </div>
-
-                    <div class="template-section">
-                        <h3>📥 Download Templates</h3>
-                        <div class="template-buttons">
-                            <button class="btn btn-secondary" onclick="downloadTemplate('students')">📥 Students
-                                Template</button>
-                            <button class="btn btn-secondary" onclick="downloadTemplate('faculty')">📥 Faculty
-                                Template</button>
-                            <button class="btn btn-secondary" onclick="downloadTemplate('classes')">📥 Classes
-                                Template</button>
-                            <button class="btn btn-warning" onclick="downloadCompleteDbTemplate()">📥 Complete DB
-                                Template</button>
-                        </div>
-                    </div>
-
-                    <!-- Students Import -->
-                    <h3>📚 Import Students (CSV)</h3>
-                    <div class="file-upload-area" id="studentUploadArea"
-                        onclick="document.getElementById('studentFile').click()">
-                        <div class="upload-icon">📄</div>
-                        <p><strong>Click to upload or drag & drop</strong></p>
-                        <p class="upload-hint">CSV file only</p>
-                        <input type="file" id="studentFile" accept=".csv" style="display:none;"
-                            onchange="handleStudentUpload(event)">
-                    </div>
-                    <div class="import-progress" id="studentProgress">
-                        <div>Importing students...</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="studentProgressBar" style="width: 0%">0%</div>
-                        </div>
-                    </div>
-
-                    <!-- Faculty Import -->
-                    <h3>👥 Import Faculty (CSV)</h3>
-                    <div class="file-upload-area" id="facultyUploadArea"
-                        onclick="document.getElementById('facultyFile').click()">
-                        <div class="upload-icon">📄</div>
-                        <p><strong>Click to upload or drag & drop</strong></p>
-                        <p class="upload-hint">CSV file only</p>
-                        <input type="file" id="facultyFile" accept=".csv" style="display:none;"
-                            onchange="handleFacultyUpload(event)">
-                    </div>
-                    <div class="import-progress" id="facultyProgress">
-                        <div>Importing faculty...</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="facultyProgressBar" style="width: 0%">0%</div>
-                        </div>
-                    </div>
-
-                    <!-- Classes Import -->
-                    <h3>🏫 Import Classes (CSV)</h3>
-                    <div class="file-upload-area" id="classesUploadArea"
-                        onclick="document.getElementById('classesFile').click()">
-                        <div class="upload-icon">📄</div>
-                        <p><strong>Click to upload or drag & drop</strong></p>
-                        <p class="upload-hint">CSV file only</p>
-                        <input type="file" id="classesFile" accept=".csv" style="display:none;"
-                            onchange="handleClassesUpload(event)">
-                    </div>
-                    <div class="import-progress" id="classesProgress">
-                        <div>Importing classes...</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="classesProgressBar" style="width: 0%">0%</div>
-                        </div>
-                    </div>
-
-                    <!-- Complete Database Import -->
-                    <div class="complete-import-section">
-                        <h3>🔁 Complete Database Import (ZIP/JSON)</h3>
-                        <div class="alert alert-info">
-                            ℹ️ Import a complete database backup ZIP file or JSON file. This will restore all data
-                            including attendance records.
-                            <strong>Warning:</strong> This will replace existing data.
-                        </div>
-
-                        <div class="file-upload-area" id="completeDbUploadArea"
-                            onclick="document.getElementById('completeDbFile').click()">
-                            <div class="upload-icon">📦</div>
-                            <p><strong>Click to upload complete database backup</strong></p>
-                            <p class="upload-hint">ZIP file or JSON backup</p>
-                            <input type="file" id="completeDbFile" accept=".zip,.json,.ZIP,.JSON" style="display:none;"
-                                onchange="handleCompleteDbUpload(event)">
-                        </div>
-
-                        <div class="import-progress" id="completeDbProgress">
-                            <div>Importing complete database...</div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="completeDbProgressBar" style="width: 0%">0%</div>
-                            </div>
-                        </div>
+                <div class="table-header">
+                    <h3>Attendance Records <span id="adminRecordCount" class="count-badge">(0)</span></h3>
+                    <div class="export-buttons">
+                        <button class="btn btn-success" onclick="exportAdminHistory('csv')">📥 Export CSV</button>
+                        <button class="btn btn-danger" onclick="exportAdminHistory('pdf')">📥 Export PDF</button>
+                        <button class="btn btn-primary" onclick="exportAdminHistory('excel')">📥 Export
+                            Excel</button>
+                        <button class="btn btn-warning" onclick="exportAdminHistory('json')">📥 Export JSON</button>
                     </div>
                 </div>
 
-                <!-- Attendance History Tab -->
-                <div id="adminAttendanceHistory" class="tab-content">
-                    <h2 class="section-title">📊 Attendance History Reports</h2>
-
-                    <div class="filter-container">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Select Year:</label>
-                                <select id="adminYearFilter">
-                                    <option value="all">All Years</option>
-                                    <option value="1">1st Year</option>
-                                    <option value="2">2nd Year</option>
-                                    <option value="3">3rd Year</option>
-                                    <option value="4">4th Year</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Select Branch:</label>
-                                <select id="adminBranchFilter">
-                                    <option value="all">All Branches</option>
-                                    <option value="Computer Science">Computer Science</option>
-                                    <option value="Civil">Civil</option>
-                                    <option value="Mechanical">Mechanical</option>
-                                    <option value="Electrical">Electrical</option>
-                                    <option value="ECE">ECE</option>
-                                    <option value="CSE(Cyber Security)">CSE(Cyber Security)</option>
-                                    <option value="CSE(Networks)">CSE(Networks)</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Select Semester:</label>
-                                <select id="adminSemesterFilter">
-                                    <option value="all">All Semesters</option>
-                                    <option value="1">Semester 1</option>
-                                    <option value="2">Semester 2</option>
-                                    <option value="3">Semester 3</option>
-                                    <option value="4">Semester 4</option>
-                                    <option value="5">Semester 5</option>
-                                    <option value="6">Semester 6</option>
-                                    <option value="7">Semester 7</option>
-                                    <option value="8">Semester 8</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Select Class:</label>
-                                <select id="adminClassFilter">
-                                    <option value="all">All Classes</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Date Filter:</label>
-                                <div class="radio-group">
-                                    <label>
-                                        <input type="radio" name="dateFilterType" value="all" checked
-                                            onchange="toggleDateRange()">
-                                        <span>All Records</span>
-                                    </label>
-                                    <label>
-                                        <input type="radio" name="dateFilterType" value="range"
-                                            onchange="toggleDateRange()">
-                                        <span>Date Range</span>
-                                    </label>
-                                </div>
-                                <div id="dateRangeInputs" class="date-range-inputs" style="display: none;">
-                                    <input type="date" id="adminDateFrom">
-                                    <span class="range-separator">to</span>
-                                    <input type="date" id="adminDateTo">
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Status Filter:</label>
-                                <select id="adminStatusFilter">
-                                    <option value="all">All Status</option>
-                                    <option value="present">Present Only</option>
-                                    <option value="absent">Absent Only</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Sort By:</label>
-                                <select id="adminSortBy">
-                                    <option value="percentage_desc">Percentage (High to Low)</option>
-                                    <option value="percentage_asc">Percentage (Low to High)</option>
-                                    <option value="rollno_asc">Roll No (Ascending)</option>
-                                    <option value="rollno_desc">Roll No (Descending)</option>
-                                    <option value="name_asc">Name (A-Z)</option>
-                                    <option value="name_desc">Name (Z-A)</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group action-buttons">
-                                <label>&nbsp;</label>
-                                <button class="btn btn-primary" onclick="loadAdminAttendanceHistory()">📊 Load
-                                    Attendance</button>
-                                <button class="btn btn-info" onclick="loadAdminAttendanceHistory()">🔄 Refresh</button>
-                                <button class="btn btn-secondary" onclick="clearAdminFilters()">🧹 Clear
-                                    Filters</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="table-header">
-                        <h3>Attendance Records <span id="adminRecordCount" class="count-badge">(0)</span></h3>
-                        <div class="export-buttons">
-                            <button class="btn btn-success" onclick="exportAdminHistory('csv')">📥 Export CSV</button>
-                            <button class="btn btn-danger" onclick="exportAdminHistory('pdf')">📥 Export PDF</button>
-                            <button class="btn btn-primary" onclick="exportAdminHistory('excel')">📥 Export
-                                Excel</button>
-                            <button class="btn btn-warning" onclick="exportAdminHistory('json')">📥 Export JSON</button>
-                        </div>
-                    </div>
-
-                    <!-- Year-wise Attendance Summary Section -->
-                    <div id="yearWiseAttendanceSection" class="summary-section">
-                        <h3>📈 Year-wise Attendance Summary</h3>
-                        <div id="yearWiseAttendanceSummary">
-                            <!-- Will be populated dynamically -->
-                        </div>
-                    </div>
-
-                    <div id="adminAttendanceTableContainer">
-                        <table id="adminAttendanceTable">
-                            <thead>
-                                <tr>
-                                    <th>Roll No</th>
-                                    <th>Student Name</th>
-                                    <th>Department</th>
-                                    <th>Year</th>
-                                    <th>Semester</th>
-                                    <th>Class</th>
-                                    <th>Total Classes</th>
-                                    <th>Present</th>
-                                    <th>Absent</th>
-                                    <th>Attendance %</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminAttendanceBody">
-                                <!-- Records will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div id="adminAttendanceStats" class="stats-section">
-                        <h4>📈 Statistics</h4>
-                        <div class="dashboard-grid">
-                            <div class="stat-card" style="background: linear-gradient(135deg, #27ae60, #229954);">
-                                <h3>Total Students</h3>
-                                <div class="value" id="statTotalRecords">0</div>
-                            </div>
-                            <div class="stat-card" style="background: linear-gradient(135deg, #3498db, #2980b9);">
-                                <h3>Average Attendance %</h3>
-                                <div class="value" id="statAvgPercentage">0%</div>
-                            </div>
-                            <div class="stat-card" style="background: linear-gradient(135deg, #f39c12, #d68910);">
-                                <h3>Above 75%</h3>
-                                <div class="value" id="statAbove75">0</div>
-                            </div>
-                            <div class="stat-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
-                                <h3>Below 75%</h3>
-                                <div class="value" id="statBelow75">0</div>
-                            </div>
-                        </div>
+                <!-- Year-wise Attendance Summary Section -->
+                <div id="yearWiseAttendanceSection" class="summary-section">
+                    <h3>📈 Year-wise Attendance Summary</h3>
+                    <div id="yearWiseAttendanceSummary">
+                        <!-- Will be populated dynamically -->
                     </div>
                 </div>
 
-                <!-- Bulk Export Tab -->
-                <div id="adminBulkExport" class="tab-content">
-
-                    <h2 class="section-title">📤 Bulk Export</h2>
-
-                    <div class="alert alert-info">
-                        ℹ️ Export complete datasets in CSV format. Data is grouped by year where applicable.
-                    </div>
-
-                    <!-- Export Cards -->
-                    <div class="dashboard-grid export-grid">
-
-                        <div class="stat-card export-card" onclick="exportBulkData('students')" tabindex="0"
-                            role="button">
-                            <div class="export-card-inner">
-                                <div class="export-icon">👥</div>
-                                <h3 class="export-title">Export Students</h3>
-                                <p class="export-desc">
-                                    Year-wise grouping<br>
-                                    All student details included
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="stat-card export-card" onclick="exportBulkData('classes')" tabindex="0"
-                            role="button">
-                            <div class="export-card-inner">
-                                <div class="export-icon">📚</div>
-                                <h3 class="export-title">Export Classes</h3>
-                                <p class="export-desc">
-                                    Year-wise grouping<br>
-                                    All class details included
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="stat-card export-card" onclick="exportBulkData('faculty')" tabindex="0"
-                            role="button">
-                            <div class="export-card-inner">
-                                <div class="export-icon">👨‍🏫</div>
-                                <h3 class="export-title">Export Faculty</h3>
-                                <p class="export-desc">
-                                    Complete faculty list<br>
-                                    All details included
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="stat-card export-card" onclick="exportAllInOne()" tabindex="0" role="button">
-                            <div class="export-card-inner">
-                                <div class="export-icon">📦</div>
-                                <h3 class="export-title">Export All Data</h3>
-                                <p class="export-desc">
-                                    Students + Classes + Faculty<br>
-                                    Multiple CSV files
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="stat-card export-card" onclick="exportCompleteDatabase()" tabindex="0"
-                            role="button">
-                            <div class="export-card-inner">
-                                <div class="export-icon">💾</div>
-                                <h3 class="export-title">Complete Database Export</h3>
-                                <p class="export-desc">
-                                    EVERYTHING in one ZIP<br>
-                                    Including attendance history
-                                </p>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <!-- Statistics -->
-                    <div class="export-stats">
-                        <h3>📊 Export Statistics</h3>
-
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <h4>Students</h4>
-                                <div id="exportStudentCount" class="stat-number">0</div>
-                                <p>Total students available for export</p>
-                            </div>
-
-                            <div class="stat-item">
-                                <h4>Faculty</h4>
-                                <div id="exportFacultyCount" class="stat-number">0</div>
-                                <p>Total faculty available for export</p>
-                            </div>
-
-                            <div class="stat-item">
-                                <h4>Classes</h4>
-                                <div id="exportClassCount" class="stat-number">0</div>
-                                <p>Total classes available for export</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Info -->
-                    <div class="export-info">
-                        <h3>ℹ️ Export Information</h3>
-                        <ul>
-                            <li>All exports are in CSV format (compatible with Excel)</li>
-                            <li>Students are grouped by academic year</li>
-                            <li>Classes are grouped by academic year</li>
-                            <li>Faculty export includes all details including specialization</li>
-                            <li>Use <strong>Export All Data</strong> to get everything in one go</li>
-                            <li>
-                                <strong>Complete Database Export</strong> includes attendance records and settings
-                            </li>
-                        </ul>
-                    </div>
-
-                </div>
-
-
-                <!-- Settings Tab -->
-                <div id="adminSettings" class="tab-content">
-                    <h2 class="section-title">⚙️ Settings</h2>
-                    <form onsubmit="saveSettings(event)">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>College Name:</label>
-                                <input type="text" id="collegeName" value="Engineering College">
-                            </div>
-                            <div class="form-group">
-                                <label>Min Attendance (%):</label>
-                                <input type="number" id="minAttendance" value="75" min="0" max="100">
-                            </div>
-                        </div>
-                        <div class="action-buttons">
-                            <button type="submit" class="btn btn-success">💾 Save</button>
-                            <button type="button" class="btn btn-secondary" onclick="exportAllData()">📥 Export All
-                                Data</button>
-                            <button type="button" class="btn btn-danger" onclick="clearAllStudents()">🗑️ Clear All
-                                Students</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- FACULTY PANEL -->
-        <div id="facultyPanel" class="panel">
-            <div class="section">
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="switchFacultyTab('mark', event)">Mark Attendance</button>
-                    <button class="tab-btn" onclick="switchFacultyTab('history', event)">Date-wise History</button>
-                    <button class="tab-btn" onclick="switchFacultyTab('report', event)">Report</button>
-                </div>
-
-                <!-- Mark Attendance Tab -->
-                <div id="facultyMark" class="tab-content active">
-                    <h2 class="section-title">✅ Mark Attendance (Multi-Session Support)</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Select Class:</label>
-                            <select id="facultyClassSelect" onchange="loadClassStudents()">
-                                <option value="">-- Select a class --</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Date:</label>
-                            <input type="date" id="attendanceDate">
-                        </div>
-                        <div class="form-group">
-                            <label>Session:</label>
-                            <select id="attendanceSession">
-                                <option value="1">Session 1</option>
-                                <option value="2">Session 2</option>
-                                <option value="3">Session 3</option>
-                                <option value="4">Session 4</option>
-                                <option value="5">Session 5</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="action-buttons">
-                        <button class="btn btn-secondary" onclick="openBulkAttendanceModal()">📂 Bulk Upload</button>
-                        <button class="btn btn-info" onclick="downloadAttendanceReport()">📥 Download Report
-                            (CSV)</button>
-                        <button class="btn btn-warning" id="multiSessionBtn" style="display:none;">📅 Mark Multiple
-                            Sessions</button>
-                    </div>
-
-                    <!-- Add Student/Batch to Session Logic -->
-                    <div class="extra-students-section">
-                        <h4>➕ Add Extra Students (Electives/Backlogs)</h4>
-
-                        <div class="add-single-student">
-                            <input type="text" id="addStudentToSessionInput"
-                                placeholder="Enter Roll No (e.g. 22156...)">
-                            <button class="btn btn-info" onclick="addStudentToSession()">Add Single Student</button>
-                        </div>
-
-                        <div class="add-batch-section">
-                            <select id="addBatchBranch">
-                                <option value="">-- Select Branch --</option>
-                                <option value="Computer Science">Computer Science</option>
-                                <option value="Civil">Civil</option>
-                                <option value="Mechanical">Mechanical</option>
-                                <option value="Electrical">Electrical</option>
-                                <option value="ECE">ECE</option>
-                                <option value="CSE(Cyber Security)">CSE(Cyber Security)</option>
-                                <option value="CSE(Networks)">CSE(Networks)</option>
-                                <option value="Applied Science">Applied Science</option>
-                            </select>
-                            <select id="addBatchSem">
-                                <option value="">-- Sem --</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                            </select>
-                            <button class="btn btn-warning" onclick="addBatchToSession()">Add Whole Batch</button>
-                        </div>
-                    </div>
-
-                    <div id="studentGridContainer" style="display:none;">
-                        <div id="studentGrid" class="student-grid"></div>
-                        <div class="action-buttons">
-                            <button class="btn btn-success" onclick="submitAttendance()">✔️ Submit Attendance for
-                                Session <span id="currentSessionDisplay">1</span></button>
-                            <button class="btn btn-secondary" onclick="resetAttendance()">🔄 Reset</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Date-wise History Tab -->
-                <div id="facultyHistory" class="tab-content">
-                    <h2 class="section-title">📅 Attendance History (Multi-Session)</h2>
-                    <div class="table-header">
-                        <p class="description">Select a date to view or edit attendance for the selected class.</p>
-                        <button class="btn btn-success" onclick="downloadHistoryCSV()">💾 Download History
-                            (CSV)</button>
-                        <button class="btn btn-info" onclick="downloadSubjectAttendanceReport()">📊 Download Subject
-                            Attendance Report</button>
-
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Select Class:</label>
-                            <select id="historyClassSelect" onchange="loadAttendanceHistory()">
-                                <option value="">-- Select a class --</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Filter Date (Optional):</label>
-                            <input type="date" id="historyDateFilter" onchange="loadAttendanceHistory()">
-                        </div>
-                    </div>
-
-                    <div id="historyList"></div>
-                </div>
-
-                <!-- Report Tab -->
-                <div id="facultyReport" class="tab-content">
-                    <h2 class="section-title">📈 Year-wise Attendance Report</h2>
-                    <div class="year-filter" id="yearFilter"></div>
-                    <table id="yearWiseAttendanceTable">
+                <div id="adminAttendanceTableContainer">
+                    <table id="adminAttendanceTable">
                         <thead>
                             <tr>
+                                <th>Roll No</th>
+                                <th>Student Name</th>
+                                <th>Department</th>
                                 <th>Year</th>
-                                <th>Subject Details</th>
-                                <th style="text-align:center;">Total Students</th>
-                                <th style="text-align:center;">Classes Held</th>
-                                <th style="text-align:center;">Avg Strength</th>
-                                <th style="text-align:center;">Action</th>
+                                <th>Semester</th>
+                                <th>Class</th>
+                                <th>Total Classes</th>
+                                <th>Present</th>
+                                <th>Absent</th>
+                                <th>Attendance %</th>
                             </tr>
                         </thead>
-                        <tbody id="yearWiseAttendanceBody">
+                        <tbody id="adminAttendanceBody">
+                            <!-- Records will be loaded here -->
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
 
-        <!-- STUDENT PANEL -->
-        <div id="studentPanel" class="panel">
-            <div class="section">
-                <h2 class="section-title">👤 Student Profile</h2>
-                <div class="profile-card">
-                    <div class="profile-info">
-                        <h3 id="studentNameDisplay">Student Name</h3>
-                        <p id="studentRollDisplay" class="roll-no">Roll No: -</p>
-                    </div>
-                    <div class="profile-details">
-                        <p><strong>Email:</strong> <span id="studentEmailDisplay">-</span></p>
-                        <p><strong>Department:</strong> <span id="studentDeptDisplay">-</span></p>
-                        <p><strong>Semester:</strong> <span id="studentSemDisplay">-</span></p>
-                        <p><strong>Year:</strong> <span id="studentYearDisplay">-</span></p>
+                <div id="adminAttendanceStats" class="stats-section">
+                    <h4>📈 Statistics</h4>
+                    <div class="dashboard-grid">
+                        <div class="stat-card" style="background: linear-gradient(135deg, #27ae60, #229954);">
+                            <h3>Total Students</h3>
+                            <div class="value" id="statTotalRecords">0</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                            <h3>Average Attendance %</h3>
+                            <div class="value" id="statAvgPercentage">0%</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #f39c12, #d68910);">
+                            <h3>Above 75%</h3>
+                            <div class="value" id="statAbove75">0</div>
+                        </div>
+                        <div class="stat-card" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                            <h3>Below 75%</h3>
+                            <div class="value" id="statBelow75">0</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="section">
-                <h2 class="section-title">📚 My Attendance</h2>
-                <table id="studentAttendanceTable">
+            <!-- Bulk Export Tab -->
+            <div id="adminBulkExport" class="tab-content">
+
+                <h2 class="section-title">📤 Bulk Export</h2>
+
+                <div class="alert alert-info">
+                    ℹ️ Export complete datasets in CSV format. Data is grouped by year where applicable.
+                </div>
+
+                <!-- Export Cards -->
+                <div class="dashboard-grid export-grid">
+
+                    <div class="stat-card export-card" onclick="exportBulkData('students')" tabindex="0" role="button">
+                        <div class="export-card-inner">
+                            <div class="export-icon">👥</div>
+                            <h3 class="export-title">Export Students</h3>
+                            <p class="export-desc">
+                                Year-wise grouping<br>
+                                All student details included
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card export-card" onclick="exportBulkData('classes')" tabindex="0" role="button">
+                        <div class="export-card-inner">
+                            <div class="export-icon">📚</div>
+                            <h3 class="export-title">Export Classes</h3>
+                            <p class="export-desc">
+                                Year-wise grouping<br>
+                                All class details included
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card export-card" onclick="exportBulkData('faculty')" tabindex="0" role="button">
+                        <div class="export-card-inner">
+                            <div class="export-icon">👨‍🏫</div>
+                            <h3 class="export-title">Export Faculty</h3>
+                            <p class="export-desc">
+                                Complete faculty list<br>
+                                All details included
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card export-card" onclick="exportAllInOne()" tabindex="0" role="button">
+                        <div class="export-card-inner">
+                            <div class="export-icon">📦</div>
+                            <h3 class="export-title">Export All Data</h3>
+                            <p class="export-desc">
+                                Students + Classes + Faculty<br>
+                                Multiple CSV files
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card export-card" onclick="exportCompleteDatabase()" tabindex="0" role="button">
+                        <div class="export-card-inner">
+                            <div class="export-icon">💾</div>
+                            <h3 class="export-title">Complete Database Export</h3>
+                            <p class="export-desc">
+                                EVERYTHING in one ZIP<br>
+                                Including attendance history
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Statistics -->
+                <div class="export-stats">
+                    <h3>📊 Export Statistics</h3>
+
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <h4>Students</h4>
+                            <div id="exportStudentCount" class="stat-number">0</div>
+                            <p>Total students available for export</p>
+                        </div>
+
+                        <div class="stat-item">
+                            <h4>Faculty</h4>
+                            <div id="exportFacultyCount" class="stat-number">0</div>
+                            <p>Total faculty available for export</p>
+                        </div>
+
+                        <div class="stat-item">
+                            <h4>Classes</h4>
+                            <div id="exportClassCount" class="stat-number">0</div>
+                            <p>Total classes available for export</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="export-info">
+                    <h3>ℹ️ Export Information</h3>
+                    <ul>
+                        <li>All exports are in CSV format (compatible with Excel)</li>
+                        <li>Students are grouped by academic year</li>
+                        <li>Classes are grouped by academic year</li>
+                        <li>Faculty export includes all details including specialization</li>
+                        <li>Use <strong>Export All Data</strong> to get everything in one go</li>
+                        <li>
+                            <strong>Complete Database Export</strong> includes attendance records and settings
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+
+
+            <!-- Settings Tab -->
+            <div id="adminSettings" class="tab-content">
+                <h2 class="section-title">⚙️ Settings</h2>
+                <form onsubmit="saveSettings(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>College Name:</label>
+                            <input type="text" id="collegeName" value="Engineering College">
+                        </div>
+                        <div class="form-group">
+                            <label>Min Attendance (%):</label>
+                            <input type="number" id="minAttendance" value="75" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="submit" class="btn btn-success">💾 Save</button>
+                        <button type="button" class="btn btn-secondary" onclick="exportAllData()">📥 Export All
+                            Data</button>
+                        <button type="button" class="btn btn-danger" onclick="clearAllStudents()">🗑️ Clear All
+                            Students</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- FACULTY PANEL -->
+    <div id="facultyPanel" class="panel">
+        <div class="section">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchFacultyTab('mark', event)">Mark Attendance</button>
+                <button class="tab-btn" onclick="switchFacultyTab('history', event)">Date-wise History</button>
+                <button class="tab-btn" onclick="switchFacultyTab('report', event)">Report</button>
+            </div>
+
+            <!-- Mark Attendance Tab -->
+            <div id="facultyMark" class="tab-content active">
+                <h2 class="section-title">✅ Mark Attendance (Multi-Session Support)</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Select Class:</label>
+                        <select id="facultyClassSelect" onchange="loadClassStudents()">
+                            <option value="">-- Select a class --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date:</label>
+                        <input type="date" id="attendanceDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Session:</label>
+                        <select id="attendanceSession">
+                            <option value="1">Session 1</option>
+                            <option value="2">Session 2</option>
+                            <option value="3">Session 3</option>
+                            <option value="4">Session 4</option>
+                            <option value="5">Session 5</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="openBulkAttendanceModal()">📂 Bulk Upload</button>
+                    <button class="btn btn-info" onclick="downloadAttendanceReport()">📥 Download Report
+                        (CSV)</button>
+                    <button class="btn btn-warning" id="multiSessionBtn" style="display:none;">📅 Mark Multiple
+                        Sessions</button>
+                </div>
+
+                <!-- Add Student/Batch to Session Logic -->
+                <div class="extra-students-section">
+                    <h4>➕ Add Extra Students (Electives/Backlogs)</h4>
+
+                    <div class="add-single-student">
+                        <input type="text" id="addStudentToSessionInput" placeholder="Enter Roll No (e.g. 22156...)">
+                        <button class="btn btn-info" onclick="addStudentToSession()">Add Single Student</button>
+                    </div>
+
+                    <div class="add-batch-section">
+                        <select id="addBatchBranch">
+                            <option value="">-- Select Branch --</option>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Civil">Civil</option>
+                            <option value="Mechanical">Mechanical</option>
+                            <option value="Electrical">Electrical</option>
+                            <option value="ECE">ECE</option>
+                            <option value="CSE(Cyber Security)">CSE(Cyber Security)</option>
+                            <option value="CSE(Networks)">CSE(Networks)</option>
+                            <option value="Applied Science">Applied Science</option>
+                        </select>
+                        <select id="addBatchSem">
+                            <option value="">-- Sem --</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                        </select>
+                        <button class="btn btn-warning" onclick="addBatchToSession()">Add Whole Batch</button>
+                    </div>
+                </div>
+
+                <div id="studentGridContainer" style="display:none;">
+                    <div id="studentGrid" class="student-grid"></div>
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="submitAttendance()">✔️ Submit Attendance for
+                            Session <span id="currentSessionDisplay">1</span></button>
+                        <button class="btn btn-secondary" onclick="resetAttendance()">🔄 Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date-wise History Tab -->
+            <div id="facultyHistory" class="tab-content">
+                <h2 class="section-title">📅 Attendance History (Multi-Session)</h2>
+                <div class="table-header">
+                    <p class="description">Select a date to view or edit attendance for the selected class.</p>
+                    <button class="btn btn-success" onclick="downloadHistoryCSV()">💾 Download History
+                        (CSV)</button>
+                    <button class="btn btn-info" onclick="downloadSubjectAttendanceReport()">📊 Download Subject
+                        Attendance Report</button>
+
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Select Class:</label>
+                        <select id="historyClassSelect" onchange="loadAttendanceHistory()">
+                            <option value="">-- Select a class --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Filter Date (Optional):</label>
+                        <input type="date" id="historyDateFilter" onchange="loadAttendanceHistory()">
+                    </div>
+                </div>
+
+                <div id="historyList"></div>
+            </div>
+
+            <!-- Report Tab -->
+            <div id="facultyReport" class="tab-content">
+                <h2 class="section-title">📈 Year-wise Attendance Report</h2>
+                <div class="year-filter" id="yearFilter"></div>
+                <table id="yearWiseAttendanceTable">
                     <thead>
                         <tr>
-                            <th>Course</th>
-                            <th>Faculty</th>
-                            <th>Total Classes (Sessions)</th>
-                            <th>Attended</th>
-                            <th>Percentage</th>
-                            <th>Status</th>
+                            <th>Year</th>
+                            <th>Subject Details</th>
+                            <th style="text-align:center;">Total Students</th>
+                            <th style="text-align:center;">Classes Held</th>
+                            <th style="text-align:center;">Avg Strength</th>
+                            <th style="text-align:center;">Action</th>
                         </tr>
                     </thead>
-                    <tbody id="studentAttendanceBody">
-                        <tr>
-                            <td colspan="6" class="no-data">No attendance records found yet.</td>
-                        </tr>
+                    <tbody id="yearWiseAttendanceBody">
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
+
+    <!-- STUDENT PANEL -->
+    <div id="studentPanel" class="panel">
+        <div class="section">
+            <h2 class="section-title">👤 Student Profile</h2>
+            <div class="profile-card">
+                <div class="profile-info">
+                    <h3 id="studentNameDisplay">Student Name</h3>
+                    <p id="studentRollDisplay" class="roll-no">Roll No: -</p>
+                </div>
+                <div class="profile-details">
+                    <p><strong>Email:</strong> <span id="studentEmailDisplay">-</span></p>
+                    <p><strong>Department:</strong> <span id="studentDeptDisplay">-</span></p>
+                    <p><strong>Semester:</strong> <span id="studentSemDisplay">-</span></p>
+                    <p><strong>Year:</strong> <span id="studentYearDisplay">-</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📚 My Attendance</h2>
+            <table id="studentAttendanceTable">
+                <thead>
+                    <tr>
+                        <th>Course</th>
+                        <th>Faculty</th>
+                        <th>Total Classes (Sessions)</th>
+                        <th>Attended</th>
+                        <th>Percentage</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="studentAttendanceBody">
+                    <tr>
+                        <td colspan="6" class="no-data">No attendance records found yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
     </div>
 
     <!-- ================ MODALS ================ -->
