@@ -478,21 +478,30 @@ function completeLogin(role, userData) {
 // Helper: Updates UI based on Role (Fixed: Prevents Crashes)
 // Helper: Updates UI based on Role (Fixed: Robust Selector)
 // Helper: Updates UI based on Role (Fixed: Correct Header Name Display)
+// Helper: Updates UI based on Role (Fixed: Robust Name Update)
 function updateUIForRole(role) {
   console.log("Initializing UI for role:", role);
 
   // 1. SELECTORS
-  // Finds the login screen (checks ID first, then class)
   const loginSection =
     document.getElementById("loginOverlay") ||
     document.querySelector(".login-wrapper");
   const mainContainer = document.querySelector(".container");
 
-  // Header Elements
-  const nameDisplay = document.getElementById("userInfoName");
-  const roleDisplay = document.getElementById("userInfoRole");
+  // Header Elements (Try ID first, then fallback to structure)
+  let nameDisplay = document.getElementById("userInfoName");
+  let roleDisplay = document.getElementById("userInfoRole");
 
-  // 2. TOGGLE VIEWS (Hide Login, Show App)
+  // Fallback: If IDs are missing, try to find them by class/structure
+  if (!nameDisplay) {
+    const userInfoDiv = document.querySelector(".user-info");
+    if (userInfoDiv) {
+      nameDisplay = userInfoDiv.querySelector("div:first-child"); // Assumes name is first div
+      roleDisplay = userInfoDiv.querySelector(".user-role-badge");
+    }
+  }
+
+  // 2. TOGGLE VIEWS
   if (loginSection) loginSection.style.display = "none";
   if (mainContainer) mainContainer.style.display = "block";
 
@@ -502,48 +511,40 @@ function updateUIForRole(role) {
       nameDisplay.textContent = "Administrator";
       roleDisplay.textContent = "ADMIN";
     } else {
-      // Ensure we read the name correctly regardless of DB capitalization
-      // Checks for 'firstname' (lowercase) OR 'firstName' (camelCase)
+      // Get name safely
       const fName = currentUser.firstname || currentUser.firstName || "User";
       const lName = currentUser.lastname || currentUser.lastName || "";
 
       nameDisplay.textContent = `${fName} ${lName}`.trim();
       roleDisplay.textContent = role.toUpperCase();
     }
-
-    console.log(
-      `Updated Header: ${nameDisplay.textContent} (${roleDisplay.textContent})`
-    );
   } else {
-    console.error(
-      "❌ Error: Header elements 'userInfoName' or 'userInfoRole' not found in HTML."
+    console.warn(
+      "⚠️ Header elements not found. Please add id='userInfoName' to the name div in HTML."
     );
   }
 
-  // 4. ACTIVATE CORRECT PANEL
+  // 4. ACTIVATE PANEL
   document
     .querySelectorAll(".panel")
     .forEach((p) => p.classList.remove("active"));
-
-  const panelId = `${role}Panel`; // e.g. 'facultyPanel'
+  const panelId = `${role}Panel`;
   const targetPanel = document.getElementById(panelId);
 
   if (targetPanel) {
     targetPanel.classList.add("active");
-  } else {
-    console.error(`⚠️ Error: Panel id='${panelId}' not found.`);
   }
 
-  // 5. LOAD ROLE-SPECIFIC DATA
-  if (role === "admin") {
-    if (typeof updateDashboard === "function") updateDashboard();
-  } else if (role === "faculty") {
-    if (typeof populateFacultyClassDropdown === "function")
-      populateFacultyClassDropdown();
-  } else if (role === "student") {
-    if (typeof populateStudentDashboard === "function")
-      populateStudentDashboard(currentUser);
-  }
+  // 5. LOAD DATA
+  if (role === "admin" && typeof updateDashboard === "function")
+    updateDashboard();
+  else if (
+    role === "faculty" &&
+    typeof populateFacultyClassDropdown === "function"
+  )
+    populateFacultyClassDropdown();
+  else if (role === "student" && typeof populateStudentDashboard === "function")
+    populateStudentDashboard(currentUser);
 }
 
 // Handle Logout
