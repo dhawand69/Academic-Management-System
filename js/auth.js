@@ -365,22 +365,18 @@ async function checkSession() {
 
 // Handle Login (Admin, Faculty, Student)
 // Handle Login (Fixed: Checks multiple common IDs to prevent crashes)
+// Handle Login (Fixed: Finds inputs automatically inside the form)
 async function handleLogin(event, role) {
   event.preventDefault();
-  console.log(`Attempting login for role: ${role}`);
 
-  let usernameField, passwordField;
+  // 1. Grab the form that was just submitted
+  const form = event.target;
+  console.log(`Processing ${role} login...`);
 
   if (role === "admin") {
-    // Try 'adminPassword' or 'admin-password'
-    passwordField =
-      document.getElementById("adminPassword") ||
-      document.getElementById("admin-password");
-
+    const passwordField = form.querySelector('input[type="password"]');
     if (!passwordField) {
-      console.error(
-        "❌ Error: Admin password field not found. Checked 'adminPassword' and 'admin-password'"
-      );
+      showToast("Error: Password field not found", "error");
       return;
     }
 
@@ -394,62 +390,73 @@ async function handleLogin(event, role) {
       showToast("Invalid Admin Password", "error");
     }
   } else if (role === "faculty") {
-    // Try common ID variations
-    usernameField =
-      document.getElementById("facultyId") ||
-      document.getElementById("faculty-id") ||
-      document.getElementById("fid");
-    passwordField =
-      document.getElementById("facultyPassword") ||
-      document.getElementById("faculty-password") ||
-      document.getElementById("fpass");
+    // Find the first text input (ID) and first password input
+    const idInput =
+      form.querySelector('input[type="text"]') ||
+      form.querySelector('input[type="email"]');
+    const passInput = form.querySelector('input[type="password"]');
 
-    if (!usernameField || !passwordField) {
-      console.error(
-        "❌ Error: Faculty input fields not found. Check HTML IDs."
-      );
-      showToast("Login Error: Input fields missing", "error");
+    if (!idInput || !passInput) {
+      console.error("❌ Form Inputs missing. Found:", {
+        id: idInput,
+        pass: passInput,
+      });
+      showToast("Login Error: Missing input fields", "error");
       return;
     }
 
+    const enteredId = idInput.value.trim(); // Removes accidental spaces
+    const enteredPass = passInput.value.trim();
+
+    // Debugging: Show what we are looking for (Check Console F12)
+    console.log(`Checking DB for Faculty ID: "${enteredId}"`);
+
     const allFaculty = await getAll("faculty");
 
-    // FIX: Loose comparison matches string vs number IDs
+    // FIX: Loose comparison + Case insensitive check for ID
     const faculty = allFaculty.find(
       (f) =>
-        (f.facultyid == usernameField.value ||
-          f.email === usernameField.value) &&
-        f.password === passwordField.value
+        (String(f.facultyid).toLowerCase() === enteredId.toLowerCase() ||
+          f.email === enteredId) &&
+        f.password === enteredPass
     );
 
     if (faculty) {
       completeLogin("faculty", faculty);
     } else {
-      showToast("Invalid Credentials", "error");
+      console.warn(
+        "Match failed. Database has:",
+        allFaculty.map((f) => f.facultyid)
+      );
+      showToast("Invalid Credentials (ID or Password incorrect)", "error");
     }
   } else if (role === "student") {
-    // Try common ID variations for Student Login
-    usernameField =
-      document.getElementById("studentRegNo") ||
-      document.getElementById("student-id") ||
-      document.getElementById("reg-no");
+    // Find the registration input
+    const regInput =
+      form.querySelector('input[type="text"]') ||
+      form.querySelector('input[type="number"]');
 
-    if (!usernameField) {
-      console.error(
-        "❌ Error: Student Registration field not found. Checked 'studentRegNo', 'student-id', 'reg-no'"
-      );
-      showToast("Login Error: Input field missing", "error");
+    if (!regInput) {
+      console.error("❌ Student Input missing inside form:", form);
+      showToast("Login Error: Registration field not found", "error");
       return;
     }
 
+    const enteredRoll = regInput.value.trim();
+    console.log(`Checking DB for Student Roll: "${enteredRoll}"`);
+
     const allStudents = await getAll("students");
 
-    // FIX: Loose comparison for ID matching
-    const student = allStudents.find((s) => s.rollno == usernameField.value);
+    // FIX: Loose comparison for Roll No
+    const student = allStudents.find((s) => s.rollno == enteredRoll);
 
     if (student) {
       completeLogin("student", student);
     } else {
+      console.warn(
+        "Student not found. DB Roll Nos:",
+        allStudents.slice(0, 5).map((s) => s.rollno)
+      );
       showToast("Student Registration No. not found", "error");
     }
   }
