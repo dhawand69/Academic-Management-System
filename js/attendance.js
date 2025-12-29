@@ -653,60 +653,201 @@ async function downloadHistoryCSV() {
 }
 
 // Generate yearly report
+// =============================================
+// FACULTY YEAR-WISE DETAILED REPORT
+// =============================================
+
 async function generateYearlyReport() {
   const tbody = document.getElementById("yearWiseAttendanceBody");
+
+  // Safety check if element exists
+  if (!tbody) return;
+
   tbody.innerHTML =
-    '<tr><td colspan="5" style="text-align:center;">Loading stats...</td></tr>';
+    '<tr><td colspan="6" style="text-align:center; padding: 20px;">Loading comprehensive report...</td></tr>';
 
-  const attendance = await getAll("attendance");
-  const students = await getAll("students");
-  const classes = await getAll("classes"); // Need to know class year
+  // 1. Identify Current Faculty
+  // Uses loose check in case currentUser isn't fully populated, falls back to auth check
+  if (!currentUser || currentUser.role !== "faculty") {
+    tbody.innerHTML =
+      '<tr><td colspan="6" style="text-align:center; color:red;">Error: You must be logged in as Faculty to view this.</td></tr>';
+    return;
+  }
 
-  // Map classId -> Year
-  const classYearMap = new Map();
-  classes.forEach((c) => classYearMap.set(c.id, c.year));
+  const facultyName = `${currentUser.firstname} ${currentUser.lastname}`;
 
-  // Initialize Stats per Year (1,2,3,4)
-  const stats = {
-    1: { held: 0, present: 0, absent: 0 },
-    2: { held: 0, present: 0, absent: 0 },
-    3: { held: 0, present: 0, absent: 0 },
-    4: { held: 0, present: 0, absent: 0 },
-  };
+  // 2. Fetch All Data
+  const [allAttendance, allClasses, allStudents] = await Promise.all([
+    getAll("attendance"),
+    getAll("classes"),
+    getAll("students"),
+  ]);
 
-  // Aggregate
-  attendance.forEach((r) => {
-    // Try to get year from class, if fails try student year
-    let year = classYearMap.get(r.classId);
-    if (!year) {
-      const s = students.find((st) => st.id === r.studentId);
-      if (s) year = Math.ceil(s.semester / 2); // Approx year from sem
-    }
+  // 3. Find Classes Taught by This Faculty
+  // Normalizing strings to ensure matches (trim + lowercase check)
+  const myClasses = allClasses.filter(
+    (c) => c.faculty.trim().toLowerCase() === facultyName.trim().toLowerCase()
+  );
 
-    if (year && stats[year]) {
-      stats[year].held++; // Counting total records as "held opportunities"
-      if (r.status === "present") stats[year].present++;
-      else if (r.status === "absent") stats[year].absent++;
+  if (myClasses.length === 0) {
+    tbody.innerHTML =
+      '<tr><td colspan="6" style="text-align:center; padding: 20px;">No classes assigned to you yet.</td></tr>';
+    return;
+  }
+
+  // 4. Sort Classes by Year (Ascending)
+  myClasses.sort((a, b) => (a.year || 0) - (b.year || 0));
+
+  let htmlRows = "";
+
+  // 5. Generate Stats for Each Class
+  for (const cls of myClasses) {
+    // Filter attendance for this specific class
+    const classRecords = allAttendance.filter((r) => r.classid === cls.id);
+
+    // A. Total Classes Held (Unique Date + Session combinations)
+    const uniqueSessions = new Set(
+      classRecords.map((r) => `${r.date}-${r.session}`)
+    );
+    const totalClassesHeld = uniqueSessions.size;
+
+    // B. Total Students (Count unique student IDs in records OR count distinct students in the batch)
+    // Method 1: Students active in attendance
+    const activeStudentIds = new Set(classRecords.map((r) => r.studentid));
+    // Method 2: Potential students (better for "Strength") -> Match Dept + Sem
+    const potentialStudents = allStudents.filter(
+      (s) => s.department === cls.department && s.semester == cls.semester
+    );
+    const totalStudents =
+      potentialStudents.length > 0
+        ? potentialStudents.length
+        : activeStudentIds.size;
+
+    // C. Average Strength (Average number of 'Present' students per session)
+    const totalPresent = classRecords.filter(
+      (r) => r.status === "present"
+    ).length;
+
+    // Avoid division by zero
+    const avgStrength =
+      totalClassesHeld > 0 ? Math.round(totalPresent / totalClassesHeld) : 0;
+
+    const attendancePercentage =
+      totalClassesHeld > 0 && totalStudents > 0
+        ? Math.round((avgStrength / totalStudents) * 100)
+        : 0;
+
+    // D. Determine Status Color
+    const statusColor =
+      attendancePercentage >= 75
+        ? "green"
+        : attendancePercentage >= 50
+        ? "orange"
+        : "red";
+
+    // E. Generate Row HTML
+    htmlRows += `
+          <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 12px; font-weight: bold;">${
+                cls.year || "N/A"
+              }</td>
+              <td style="padding: 12px;">
+                  <div style="font-weight:600; color: #2c3e50;">${
+                    cls.name
+                  }</div>
+                  <div style="font-size:11px; color: #7f8c8d;">${cls.code} • ${
+      cls.department
+    }</div>
+              </td>
+              <td style="padding: 12px; text-align: center;">${totalStudents}</td>
+              <td style="padding: 12px; text-align: center;">${totalClassesHeld}</td>
+              <td style="padding: 12px; text-align: center;">
+                  ${avgStrength} <span style="font-size:11px; color:#7f8c8d;">/ class</span>
+                  <div style="font-size:10px; color:${statusColor}; font-weight:bold;">${attendancePercentage}% Avg</div>
+              </td>
+              <td style="padding: 12px; text-align: center;">
+                   <button class="btn btn-small btn-primary" onclick="downloadSubjectAttendanceReportForId(${
+                     cls.id
+                   })">
+                      📥 Report
+                   </button>
+              </td>
+          </tr>
+      `;
+  }
+
+  // 6. Update Table Header (Optional, requires matching HTML structure)
+  // Ensure your HTML <thead> matches these columns: Year | Subject | Students | Classes Held | Avg Strength | Action
+
+  tbody.innerHTML = htmlRows;
+}
+
+// Helper: Download Report for a specific Class ID (Wrapper for button click)
+async function downloadSubjectAttendanceReportForId(classId) {
+  // Re-use existing export logic but force specific ID
+  // We can't use the dropdown value because this button is independent
+
+  // Create a temporary mock of the select element logic
+  const allAttendance = await getAll("attendance");
+  const allStudents = await getAll("students");
+  const allClasses = await getAll("classes");
+  const classInfo = allClasses.find((c) => c.id === classId);
+
+  if (!classInfo) {
+    showToast("Class info not found", "error");
+    return;
+  }
+
+  const classRecords = allAttendance.filter((r) => r.classid === classId);
+
+  if (classRecords.length === 0) {
+    showToast("No attendance data to export.", "info");
+    return;
+  }
+
+  // Generate CSV
+  let csvLines = [];
+  csvLines.push("ACADEMIC ATTENDANCE REPORT");
+  csvLines.push(`Faculty: ${classInfo.faculty}`);
+  csvLines.push(`Subject: ${classInfo.name} (${classInfo.code})`);
+  csvLines.push(`Year: ${classInfo.year}, Semester: ${classInfo.semester}`);
+  csvLines.push(`Generated: ${new Date().toLocaleString()}`);
+  csvLines.push("");
+  csvLines.push("Roll No,Student Name,Total Classes,Present,Absent,Percentage");
+
+  // Group by student
+  const studentStats = {};
+  classRecords.forEach((r) => {
+    if (!studentStats[r.studentid])
+      studentStats[r.studentid] = { p: 0, a: 0, total: 0 };
+    studentStats[r.studentid].total++;
+    if (r.status === "present") studentStats[r.studentid].p++;
+    else studentStats[r.studentid].a++;
+  });
+
+  Object.keys(studentStats).forEach((sid) => {
+    const s = allStudents.find((stu) => stu.id == sid);
+    if (s) {
+      const stat = studentStats[sid];
+      const pct = Math.round((stat.p / stat.total) * 100);
+      csvLines.push(
+        `${s.rollno},"${s.firstname} ${s.lastname}",${stat.total},${stat.p},${stat.a},${pct}%`
+      );
     }
   });
 
-  tbody.innerHTML = "";
+  // Download
+  const blob = new Blob([csvLines.join("\n")], { type: "text/csv" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `Report_${classInfo.code}_${
+    new Date().toISOString().split("T")[0]
+  }.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 
-  for (let year = 1; year <= 4; year++) {
-    const s = stats[year];
-    const total = s.present + s.absent;
-    const percent = total > 0 ? Math.round((s.present / total) * 100) : 0;
-
-    const row = document.createElement("tr");
-    row.innerHTML = `
-                    <td>${year}</td>
-                    <td>${total}</td>
-                    <td>${s.present}</td>
-                    <td>${s.absent}</td>
-                    <td><strong>${percent}%</strong></td>
-                 `;
-    tbody.appendChild(row);
-  }
+  showToast("Report downloaded successfully", "success");
 }
 
 // =============================================
@@ -2557,109 +2698,121 @@ document.addEventListener("DOMContentLoaded", function () {
   }, 500);
 });
 
-
-
-
 // =============================================
 // SECURE DELETE ATTENDANCE (ADMIN)
 // =============================================
 
 // 1. Inject the "Delete" button next to Export buttons
 function injectAdminDeleteButton() {
-    // Prevent duplicates
-    if (document.getElementById("btnDeleteAdminAttendance")) return;
+  // Prevent duplicates
+  if (document.getElementById("btnDeleteAdminAttendance")) return;
 
-    // Find the Export Buttons container in Admin Panel
-    // We look for the button group containing 'Export CSV'
-    const exportGroup = document.querySelector("#adminPanel .btn-group") || 
-                        document.querySelector("#adminPanel .export-buttons") ||
-                        // Fallback: Find the 'Export JSON' button and grab its parent
-                        Array.from(document.querySelectorAll("button")).find(b => b.textContent.includes("Export JSON"))?.parentNode;
+  // Find the Export Buttons container in Admin Panel
+  // We look for the button group containing 'Export CSV'
+  const exportGroup =
+    document.querySelector("#adminPanel .btn-group") ||
+    document.querySelector("#adminPanel .export-buttons") ||
+    // Fallback: Find the 'Export JSON' button and grab its parent
+    Array.from(document.querySelectorAll("button")).find((b) =>
+      b.textContent.includes("Export JSON")
+    )?.parentNode;
 
-    if (!exportGroup) return;
+  if (!exportGroup) return;
 
-    const deleteBtn = document.createElement("button");
-    deleteBtn.id = "btnDeleteAdminAttendance";
-    deleteBtn.className = "btn btn-danger"; // Red styling
-    deleteBtn.innerHTML = "🗑️ Delete Records";
-    deleteBtn.style.marginLeft = "10px";
-    deleteBtn.onclick = deleteAdminAttendance;
+  const deleteBtn = document.createElement("button");
+  deleteBtn.id = "btnDeleteAdminAttendance";
+  deleteBtn.className = "btn btn-danger"; // Red styling
+  deleteBtn.innerHTML = "🗑️ Delete Records";
+  deleteBtn.style.marginLeft = "10px";
+  deleteBtn.onclick = deleteAdminAttendance;
 
-    exportGroup.appendChild(deleteBtn);
+  exportGroup.appendChild(deleteBtn);
 }
 
 // 2. Handle Secure Deletion
 async function deleteAdminAttendance() {
-    // --- STEP 1: GET FILTERS ---
-    const classId = document.getElementById("adminClassFilter").value;
-    const dateType = document.querySelector('input[name="dateFilterType"]:checked')?.value || 'all';
-    const dateFrom = document.getElementById("adminDateFrom").value;
-    const dateTo = document.getElementById("adminDateTo").value;
+  // --- STEP 1: GET FILTERS ---
+  const classId = document.getElementById("adminClassFilter").value;
+  const dateType =
+    document.querySelector('input[name="dateFilterType"]:checked')?.value ||
+    "all";
+  const dateFrom = document.getElementById("adminDateFrom").value;
+  const dateTo = document.getElementById("adminDateTo").value;
 
-    // Safety: Require a specific class to be selected
-    if (classId === "all") {
-        showToast("⚠️ Safety Lock: Please select a specific 'Class' to delete.", "warning");
-        return;
-    }
+  // Safety: Require a specific class to be selected
+  if (classId === "all") {
+    showToast(
+      "⚠️ Safety Lock: Please select a specific 'Class' to delete.",
+      "warning"
+    );
+    return;
+  }
 
-    // --- STEP 2: FIND RECORDS ---
-    showToast("Scanning records...", "info");
-    const allAttendance = await getAll("attendance");
+  // --- STEP 2: FIND RECORDS ---
+  showToast("Scanning records...", "info");
+  const allAttendance = await getAll("attendance");
 
-    // Filter by Class (Lowercase 'classid')
-    let recordsToDelete = allAttendance.filter(r => r.classid == classId);
+  // Filter by Class (Lowercase 'classid')
+  let recordsToDelete = allAttendance.filter((r) => r.classid == classId);
 
-    // Filter by Date Range (if active)
-    if (dateType === 'range' && dateFrom && dateTo) {
-        recordsToDelete = recordsToDelete.filter(r => r.date >= dateFrom && r.date <= dateTo);
-    }
+  // Filter by Date Range (if active)
+  if (dateType === "range" && dateFrom && dateTo) {
+    recordsToDelete = recordsToDelete.filter(
+      (r) => r.date >= dateFrom && r.date <= dateTo
+    );
+  }
 
-    if (recordsToDelete.length === 0) {
-        showToast("No records found matching current filters.", "info");
-        return;
-    }
+  if (recordsToDelete.length === 0) {
+    showToast("No records found matching current filters.", "info");
+    return;
+  }
 
-    // --- STEP 3: SECURITY PROMPT ---
-    const confirmMsg = `⚠️ DANGER ZONE ⚠️\n\nYou are about to DELETE ${recordsToDelete.length} attendance records.\n\nFilters Applied:\n- Class ID: ${classId}\n- Date Mode: ${dateType}\n\nThis action CANNOT be undone.\n\nEnter ADMIN PASSWORD to confirm:`;
-    
-    const password = prompt(confirmMsg);
+  // --- STEP 3: SECURITY PROMPT ---
+  const confirmMsg = `⚠️ DANGER ZONE ⚠️\n\nYou are about to DELETE ${recordsToDelete.length} attendance records.\n\nFilters Applied:\n- Class ID: ${classId}\n- Date Mode: ${dateType}\n\nThis action CANNOT be undone.\n\nEnter ADMIN PASSWORD to confirm:`;
 
-    if (password === null) return; // User cancelled
+  const password = prompt(confirmMsg);
 
-    // Verify Password (ADMIN_PASSWORD from config.js)
-    if (password !== ADMIN_PASSWORD) {
-        showToast("❌ Incorrect Password! Action Denied.", "error");
-        return;
-    }
+  if (password === null) return; // User cancelled
 
-    // --- STEP 4: EXECUTE DELETE ---
-    if (!confirm("Are you absolutely sure?")) return;
+  // Verify Password (ADMIN_PASSWORD from config.js)
+  if (password !== ADMIN_PASSWORD) {
+    showToast("❌ Incorrect Password! Action Denied.", "error");
+    return;
+  }
 
-    showToast(`Deleting ${recordsToDelete.length} records... Please wait.`, "info");
+  // --- STEP 4: EXECUTE DELETE ---
+  if (!confirm("Are you absolutely sure?")) return;
 
-    try {
-        const deletePromises = recordsToDelete.map(r => deleteRecord("attendance", r.id));
-        await Promise.all(deletePromises);
+  showToast(
+    `Deleting ${recordsToDelete.length} records... Please wait.`,
+    "info"
+  );
 
-        showToast(`✅ Successfully deleted ${recordsToDelete.length} records.`, "success");
-        
-        // Refresh the table to show empty results
-        loadAdminAttendanceHistory(); 
+  try {
+    const deletePromises = recordsToDelete.map((r) =>
+      deleteRecord("attendance", r.id)
+    );
+    await Promise.all(deletePromises);
 
-    } catch (error) {
-        console.error("Delete failed:", error);
-        showToast("Error deleting records. Check console.", "error");
-    }
+    showToast(
+      `✅ Successfully deleted ${recordsToDelete.length} records.`,
+      "success"
+    );
+
+    // Refresh the table to show empty results
+    loadAdminAttendanceHistory();
+  } catch (error) {
+    console.error("Delete failed:", error);
+    showToast("Error deleting records. Check console.", "error");
+  }
 }
 
-
-
 document.addEventListener("DOMContentLoaded", function () {
-    // Existing initializers...
-    setTimeout(() => {
-        if(typeof addMultiSessionButton === 'function') addMultiSessionButton();
-        
-        // ADD THIS LINE:
-        injectAdminDeleteButton(); 
-    }, 1000);
+  // Existing initializers...
+  setTimeout(() => {
+    if (typeof addMultiSessionButton === "function") addMultiSessionButton();
+
+    // ADD THIS LINE:
+    injectAdminDeleteButton();
+  }, 1000);
 });
