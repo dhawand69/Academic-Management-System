@@ -425,11 +425,14 @@ function completeLogin(role, userData) {
 
 // Helper: Updates UI based on Role
 // Helper: Updates UI based on Role (Fixed: Prevents Crashes)
+// Helper: Updates UI based on Role (Fixed: Robust Selector)
 function updateUIForRole(role) {
   console.log("Initializing UI for role:", role);
 
-  // 1. Safe Selectors
-  const loginSection = document.getElementById("loginSection");
+  // 1. SMART SELECTORS (Try ID first, then Class)
+  const loginSection =
+    document.getElementById("loginSection") ||
+    document.querySelector(".login-wrapper");
   const mainContainer = document.querySelector(".container");
   const nameDisplay = document.getElementById("userInfoName");
   const roleDisplay = document.getElementById("userInfoRole");
@@ -438,7 +441,9 @@ function updateUIForRole(role) {
   if (loginSection) {
     loginSection.style.display = "none";
   } else {
-    console.error("⚠️ Error: Element id='loginSection' not found in HTML");
+    console.error(
+      "CRITICAL ERROR: Could not find Login Screen. Checked id='loginSection' and class='.login-wrapper'"
+    );
   }
 
   // 3. Show Dashboard (Safely)
@@ -463,7 +468,7 @@ function updateUIForRole(role) {
     .forEach((p) => p.classList.remove("active"));
 
   // 6. Show appropriate panel
-  const panelId = `${role}Panel`; // e.g., adminPanel, facultyPanel
+  const panelId = `${role}Panel`; // e.g., adminPanel
   const targetPanel = document.getElementById(panelId);
 
   if (targetPanel) {
@@ -485,6 +490,7 @@ function updateUIForRole(role) {
 }
 
 // Handle Logout
+// Handle Logout (Fixed: Safety Checks)
 function handleLogout() {
   currentUser = null;
 
@@ -492,9 +498,25 @@ function handleLogout() {
   localStorage.removeItem("currentUser");
   localStorage.removeItem("loginTime");
 
-  // Reset UI
-  document.querySelector(".container").style.display = "none";
-  document.getElementById("loginSection").style.display = "flex";
+  // 1. Reset UI - Find elements robustly
+  const loginSection =
+    document.getElementById("loginSection") ||
+    document.querySelector(".login-wrapper");
+  const mainContainer = document.querySelector(".container");
+
+  if (mainContainer) {
+    mainContainer.style.display = "none";
+  }
+
+  if (loginSection) {
+    // Restore login screen style
+    loginSection.style.display = "flex";
+  } else {
+    console.error("Logout Error: Cannot find Login Screen to restore.");
+    // Fallback: Reload page to force login screen
+    window.location.reload();
+    return;
+  }
 
   // Reset Forms
   document.querySelectorAll("form").forEach((f) => f.reset());
