@@ -620,115 +620,119 @@
                 </div>
 
                 <!-- Bulk Export Tab -->
-<div id="adminBulkExport" class="tab-content">
+                <div id="adminBulkExport" class="tab-content">
 
-    <h2 class="section-title">📤 Bulk Export</h2>
+                    <h2 class="section-title">📤 Bulk Export</h2>
 
-    <div class="alert alert-info">
-        ℹ️ Export complete datasets in CSV format. Data is grouped by year where applicable.
-    </div>
+                    <div class="alert alert-info">
+                        ℹ️ Export complete datasets in CSV format. Data is grouped by year where applicable.
+                    </div>
 
-    <!-- Export Cards -->
-    <div class="dashboard-grid export-grid">
+                    <!-- Export Cards -->
+                    <div class="dashboard-grid export-grid">
 
-        <div class="stat-card export-card" onclick="exportBulkData('students')" tabindex="0" role="button">
-            <div class="export-card-inner">
-                <div class="export-icon">👥</div>
-                <h3 class="export-title">Export Students</h3>
-                <p class="export-desc">
-                    Year-wise grouping<br>
-                    All student details included
-                </p>
-            </div>
-        </div>
+                        <div class="stat-card export-card" onclick="exportBulkData('students')" tabindex="0"
+                            role="button">
+                            <div class="export-card-inner">
+                                <div class="export-icon">👥</div>
+                                <h3 class="export-title">Export Students</h3>
+                                <p class="export-desc">
+                                    Year-wise grouping<br>
+                                    All student details included
+                                </p>
+                            </div>
+                        </div>
 
-        <div class="stat-card export-card" onclick="exportBulkData('classes')" tabindex="0" role="button">
-            <div class="export-card-inner">
-                <div class="export-icon">📚</div>
-                <h3 class="export-title">Export Classes</h3>
-                <p class="export-desc">
-                    Year-wise grouping<br>
-                    All class details included
-                </p>
-            </div>
-        </div>
+                        <div class="stat-card export-card" onclick="exportBulkData('classes')" tabindex="0"
+                            role="button">
+                            <div class="export-card-inner">
+                                <div class="export-icon">📚</div>
+                                <h3 class="export-title">Export Classes</h3>
+                                <p class="export-desc">
+                                    Year-wise grouping<br>
+                                    All class details included
+                                </p>
+                            </div>
+                        </div>
 
-        <div class="stat-card export-card" onclick="exportBulkData('faculty')" tabindex="0" role="button">
-            <div class="export-card-inner">
-                <div class="export-icon">👨‍🏫</div>
-                <h3 class="export-title">Export Faculty</h3>
-                <p class="export-desc">
-                    Complete faculty list<br>
-                    All details included
-                </p>
-            </div>
-        </div>
+                        <div class="stat-card export-card" onclick="exportBulkData('faculty')" tabindex="0"
+                            role="button">
+                            <div class="export-card-inner">
+                                <div class="export-icon">👨‍🏫</div>
+                                <h3 class="export-title">Export Faculty</h3>
+                                <p class="export-desc">
+                                    Complete faculty list<br>
+                                    All details included
+                                </p>
+                            </div>
+                        </div>
 
-        <div class="stat-card export-card" onclick="exportAllInOne()" tabindex="0" role="button">
-            <div class="export-card-inner">
-                <div class="export-icon">📦</div>
-                <h3 class="export-title">Export All Data</h3>
-                <p class="export-desc">
-                    Students + Classes + Faculty<br>
-                    Multiple CSV files
-                </p>
-            </div>
-        </div>
+                        <div class="stat-card export-card" onclick="exportAllInOne()" tabindex="0" role="button">
+                            <div class="export-card-inner">
+                                <div class="export-icon">📦</div>
+                                <h3 class="export-title">Export All Data</h3>
+                                <p class="export-desc">
+                                    Students + Classes + Faculty<br>
+                                    Multiple CSV files
+                                </p>
+                            </div>
+                        </div>
 
-        <div class="stat-card export-card" onclick="exportCompleteDatabase()" tabindex="0" role="button">
-            <div class="export-card-inner">
-                <div class="export-icon">💾</div>
-                <h3 class="export-title">Complete Database Export</h3>
-                <p class="export-desc">
-                    EVERYTHING in one ZIP<br>
-                    Including attendance history
-                </p>
-            </div>
-        </div>
+                        <div class="stat-card export-card" onclick="exportCompleteDatabase()" tabindex="0"
+                            role="button">
+                            <div class="export-card-inner">
+                                <div class="export-icon">💾</div>
+                                <h3 class="export-title">Complete Database Export</h3>
+                                <p class="export-desc">
+                                    EVERYTHING in one ZIP<br>
+                                    Including attendance history
+                                </p>
+                            </div>
+                        </div>
 
-    </div>
+                    </div>
 
-    <!-- Statistics -->
-    <div class="export-stats">
-        <h3>📊 Export Statistics</h3>
+                    <!-- Statistics -->
+                    <div class="export-stats">
+                        <h3>📊 Export Statistics</h3>
 
-        <div class="stats-grid">
-            <div class="stat-item">
-                <h4>Students</h4>
-                <div id="exportStudentCount" class="stat-number">0</div>
-                <p>Total students available for export</p>
-            </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <h4>Students</h4>
+                                <div id="exportStudentCount" class="stat-number">0</div>
+                                <p>Total students available for export</p>
+                            </div>
 
-            <div class="stat-item">
-                <h4>Faculty</h4>
-                <div id="exportFacultyCount" class="stat-number">0</div>
-                <p>Total faculty available for export</p>
-            </div>
+                            <div class="stat-item">
+                                <h4>Faculty</h4>
+                                <div id="exportFacultyCount" class="stat-number">0</div>
+                                <p>Total faculty available for export</p>
+                            </div>
 
-            <div class="stat-item">
-                <h4>Classes</h4>
-                <div id="exportClassCount" class="stat-number">0</div>
-                <p>Total classes available for export</p>
-            </div>
-        </div>
-    </div>
+                            <div class="stat-item">
+                                <h4>Classes</h4>
+                                <div id="exportClassCount" class="stat-number">0</div>
+                                <p>Total classes available for export</p>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Info -->
-    <div class="export-info">
-        <h3>ℹ️ Export Information</h3>
-        <ul>
-            <li>All exports are in CSV format (compatible with Excel)</li>
-            <li>Students are grouped by academic year</li>
-            <li>Classes are grouped by academic year</li>
-            <li>Faculty export includes all details including specialization</li>
-            <li>Use <strong>Export All Data</strong> to get everything in one go</li>
-            <li>
-                <strong>Complete Database Export</strong> includes attendance records and settings
-            </li>
-        </ul>
-    </div>
+                    <!-- Info -->
+                    <div class="export-info">
+                        <h3>ℹ️ Export Information</h3>
+                        <ul>
+                            <li>All exports are in CSV format (compatible with Excel)</li>
+                            <li>Students are grouped by academic year</li>
+                            <li>Classes are grouped by academic year</li>
+                            <li>Faculty export includes all details including specialization</li>
+                            <li>Use <strong>Export All Data</strong> to get everything in one go</li>
+                            <li>
+                                <strong>Complete Database Export</strong> includes attendance records and settings
+                            </li>
+                        </ul>
+                    </div>
 
-</div>
+                </div>
 
 
                 <!-- Settings Tab -->
@@ -883,10 +887,11 @@
                         <thead>
                             <tr>
                                 <th>Year</th>
-                                <th>Classes Held (Records)</th>
-                                <th>Total Attended</th>
-                                <th>Absent</th>
-                                <th>Attendance %</th>
+                                <th>Subject Details</th>
+                                <th style="text-align:center;">Total Students</th>
+                                <th style="text-align:center;">Classes Held</th>
+                                <th style="text-align:center;">Avg Strength</th>
+                                <th style="text-align:center;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="yearWiseAttendanceBody">
@@ -1553,5 +1558,3 @@
 </body>
 
 </html>
-
-
