@@ -6,9 +6,9 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const ADMIN_PASSWORD = "GecKaimur@148";
 
 const branchMap = {
-  101: "Civil",
-  102: "Mechanical",
-  103: "Electrical",
+  101: "Civil Engineering",
+  102: "Mechanical Engineering",
+  103: "Electrical Engineering",
   104: "ECE",
   152: "CSE(Cyber Security)",
   156: "CSE(Networks)",
