@@ -1,7 +1,7 @@
 // config.js - Supabase Configuration
 
-const SUPABASE_URL = "https://iqxpnpiimzospvsxgbvb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxeHBucGlpbXpvc3B2c3hnYnZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMzczMTksImV4cCI6MjA4MTkxMzMxOX0.dt9wwOynnIjhsI6mYAeqdWArWuAElyOnuDRCuEpMXU0";
+const SUPABASE_URL = "https://titxyzeysnmzptmidinn.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpdHh5emV5c25tenB0bWlkaW5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjg5MDIsImV4cCI6MjA4MTkwNDkwMn0.RnvpRUtihR-ahnKhDuoJgOdWss_CA9Rsg6ln5_3zV-Q";
 
 const ADMIN_PASSWORD = "GecKaimur@148";
 
