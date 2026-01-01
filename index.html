@@ -143,10 +143,9 @@
                                 <button class="filter-btn" onclick="filterStudents(4)">4th Year</button>
                             </div>
                         </div>
-
                         <div class="filter-group">
                             <span class="filter-label">🏢 Filter by Branch:</span>
-                            <select id="classBranchFilter" onchange="loadClasses()" class="branch-select">
+                            <select id="studentBranchFilter" onchange="filterStudentsByBranch()" class="branch-select">
                                 <option value="all">All Departments</option>
                                 <option value="Computer Science">Computer Science</option>
                                 <option value="Civil">Civil</option>
@@ -159,7 +158,7 @@
                             </select>
                         </div>
 
-                       
+
 
                         <!-- Select All Banner -->
                         <div id="selectAllBanner" class="selection-prompt" style="display:none;">
@@ -290,10 +289,9 @@
                             </div>
                         </div>
 
-                        <div class="filter-group" id="classSemesterFilterGroup" style="display:none;">
+                        <div class="filter-group" id="semesterFilterGroup" style="display:none;">
                             <span class="filter-label">📅 Filter by Semester:</span>
-                            <div class="filter-btn-group" id="classSemesterButtons">
-                                <!-- Dynamic buttons -->
+                            <div class="filter-btn-group" id="semesterButtons">
                             </div>
                         </div>
                     </div>
