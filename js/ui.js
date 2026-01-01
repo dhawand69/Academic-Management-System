@@ -1,3 +1,5 @@
+let showArchivedClasses = false;
+
 function showToast(message, type = "success") {
   const container = document.getElementById("toastContainer");
   const toast = document.createElement("div");
@@ -918,25 +920,100 @@ async function openEditClassModal(id) {
 async function loadClasses() {
   const allClasses = await getAll("classes");
   const tbody = document.getElementById("classesTableBody");
-  const select = document.getElementById("facultyClassSelect");
+
+  // 1. Inject Archive Toggle Button (if missing)
+  const filterContainer = document.querySelector(
+    "#adminClasses .filter-container"
+  );
+  if (filterContainer && !document.getElementById("btnToggleArchive")) {
+    const btn = document.createElement("button");
+    btn.id = "btnToggleArchive";
+    btn.className = "btn btn-secondary";
+    btn.style.marginTop = "15px"; // Added spacing
+    btn.innerHTML = "🗄️ Show Archived Classes";
+    btn.onclick = toggleArchivedView;
+    filterContainer.appendChild(btn);
+  }
+
   tbody.innerHTML = "";
+
+  // 2. GET BRANCH FILTER VALUE
+  const branchFilter = document.getElementById("classBranchFilter")
+    ? document.getElementById("classBranchFilter").value
+    : "all";
+
   const displayedClasses = allClasses.filter((cls) => {
+    // A. ARCHIVE STATUS FILTER
+    const isActive = cls.is_active !== false;
+    if (showArchivedClasses) {
+      if (isActive) return false; // In archive mode, hide active
+    } else {
+      if (!isActive) return false; // In active mode, hide archived
+    }
+
+    // B. BRANCH FILTER (New!)
+    if (branchFilter !== "all") {
+      if (cls.department !== branchFilter) return false;
+    }
+
+    // C. YEAR FILTER
     if (activeClassFilter.year !== "all") {
       const expectedMinSem = (activeClassFilter.year - 1) * 2 + 1;
       const expectedMaxSem = expectedMinSem + 1;
       if (cls.semester < expectedMinSem || cls.semester > expectedMaxSem)
         return false;
     }
+
+    // D. SEMESTER FILTER
     if (activeClassFilter.semester !== null) {
       if (cls.semester !== activeClassFilter.semester) return false;
     }
+
     return true;
   });
+
+  // 3. Render Table
+  if (displayedClasses.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:gray;">
+        ${
+          showArchivedClasses
+            ? "No archived classes found for this branch."
+            : "No active classes found for this branch."
+        }
+      </td></tr>`;
+    updateDashboard();
+    return;
+  }
+
   displayedClasses.forEach((cls) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${cls.code}</td><td>${cls.name}</td><td>${cls.department}</td><td>${cls.semester}</td><td>${cls.faculty}</td><td>${cls.year}</td><td>${cls.credits}</td><td><button class="btn btn-small btn-info" onclick="openEditClassModal(${cls.id})">Edit</button><button class="btn btn-small btn-danger" onclick="deleteClass(${cls.id})">Delete</button></td>`;
+
+    let actionButtons = "";
+    if (showArchivedClasses) {
+      // Restore button for archived items
+      actionButtons = `<button class="btn btn-small btn-success" onclick="restoreClass(${cls.id})">♻️ Restore</button>`;
+    } else {
+      // Standard buttons for active items
+      actionButtons = `
+            <button class="btn btn-small btn-info" onclick="openEditClassModal(${cls.id})">Edit</button>
+            <button class="btn btn-small btn-warning" onclick="archiveClass(${cls.id})" title="Archive to reuse code">🗄️</button>
+            <button class="btn btn-small btn-danger" onclick="deleteClass(${cls.id})">🗑️</button>
+        `;
+    }
+
+    tr.innerHTML = `
+        <td>${cls.code}</td>
+        <td>${cls.name}</td>
+        <td>${cls.department}</td>
+        <td>${cls.semester}</td>
+        <td>${cls.faculty}</td>
+        <td>${cls.year}</td>
+        <td>${cls.credits}</td>
+        <td>${actionButtons}</td>`;
+
     tbody.appendChild(tr);
   });
+
   updateDashboard();
 }
 
@@ -1264,4 +1341,70 @@ function toggleDateRange() {
   if (rangeInputs) {
     rangeInputs.style.display = isRange ? "flex" : "none";
   }
+}
+
+// Toggle between Active and Archived views
+function toggleArchivedView() {
+  showArchivedClasses = !showArchivedClasses;
+  const btn = document.getElementById("btnToggleArchive");
+  if (btn) {
+    btn.textContent = showArchivedClasses
+      ? "📂 Show Active Classes"
+      : "🗄️ Show Archived Classes";
+    btn.className = showArchivedClasses
+      ? "btn btn-primary"
+      : "btn btn-secondary";
+  }
+  loadClasses();
+}
+
+// Archive a class (Soft Delete + Rename Code)
+async function archiveClass(id) {
+  const cls = await getRecord("classes", id);
+  if (!cls) return;
+
+  showConfirm(
+    `Archive "${cls.code}"? \n\nThis will hide the class and rename its code to "${cls.code}_${cls.year}_ARCHIVED" so you can reuse the code "${cls.code}" for a new batch.`,
+    async function () {
+      // 1. Rename code to free it up (e.g., CS101 -> CS101_2024_ARCHIVED)
+      const oldCode = cls.code;
+      const newCode = `${oldCode}_${cls.year}_ARCHIVED_${Date.now()
+        .toString()
+        .slice(-4)}`;
+
+      const updatedData = {
+        id: cls.id,
+        code: newCode,
+        is_active: false, // Mark as archived
+        updatedat: new Date().toISOString(),
+      };
+
+      await updateRecord("classes", updatedData);
+      showToast(`Class archived! Code renamed to ${newCode}`, "success");
+      loadClasses();
+    }
+  );
+}
+
+// Restore an archived class
+async function restoreClass(id) {
+  const cls = await getRecord("classes", id);
+  if (!cls) return;
+
+  // Ask user for the new clean code (remove the _ARCHIVED garbage)
+  const cleanCode = cls.code.split("_")[0];
+
+  const newCode = prompt(`Enter the code to restore this class as:`, cleanCode);
+  if (!newCode) return;
+
+  const updatedData = {
+    id: cls.id,
+    code: newCode,
+    is_active: true,
+    updatedat: new Date().toISOString(),
+  };
+
+  await updateRecord("classes", updatedData);
+  showToast("Class restored successfully!", "success");
+  loadClasses();
 }
