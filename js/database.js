@@ -163,7 +163,7 @@ function getValidColumns(table) {
     // rollno, firstname, lastname, createdat, updatedat (ALL LOWERCASE)
     students: ['id', 'rollno', 'firstname', 'lastname', 'email', 'department', 'year', 'semester', 'createdat', 'updatedat'],
     faculty: ['id', 'facultyid', 'firstname', 'lastname', 'email', 'department', 'specialization', 'password', 'createdat', 'updatedat'],
-    classes: ['id', 'code', 'name', 'department', 'semester', 'faculty', 'year', 'credits', 'createdat', 'updatedat'],
+    classes: ['id', 'code', 'name', 'department', 'semester', 'faculty', 'year', 'credits', 'createdat', 'updatedat', 'is_active'],
     attendance: ['id', 'classid', 'studentid', 'date', 'session', 'status', 'notes', 'createdat', 'updatedat'],
     academic_years: ['id', 'year', 'startdate', 'enddate', 'type', 'createdat'],
     settings: ['id', 'key', 'value', 'createdat', 'updatedat']
