@@ -848,9 +848,16 @@ async function addClass(event) {
 
 async function updateClass(event) {
   event.preventDefault();
-  const id = parseInt(document.getElementById("editClassIdKey").value);
-  const oldRecord = await getRecord("classes", id);
+
+  // 1. Get ID
+  const idKey = parseInt(document.getElementById("editClassIdKey").value);
+
+  // 2. Get old record (to preserve creation date)
+  const oldRecord = await getRecord("classes", idKey);
+
+  // 3. Construct ONE object containing the ID
   const updatedData = {
+    id: idKey, // <--- CRITICAL FIX: ID must be inside the object
     code: document.getElementById("editClassCode").value,
     name: document.getElementById("editCourseName").value,
     department: document.getElementById("editClassDept").value,
@@ -858,9 +865,16 @@ async function updateClass(event) {
     faculty: document.getElementById("editClassFaculty").value,
     year: parseInt(document.getElementById("editClassYear").value),
     credits: parseInt(document.getElementById("editClassCredits").value),
-    created_at: oldRecord ? oldRecord.created_at : new Date().toISOString(),
+    // Fix: Use 'createdat' (lowercase) to match database schema
+    createdat: oldRecord
+      ? oldRecord.createdat || oldRecord.created_at
+      : new Date().toISOString(),
+    updatedat: new Date().toISOString(),
   };
-  await updateRecord("classes", id, updatedData);
+
+  // 4. Pass only TWO arguments (table name, object)
+  await updateRecord("classes", updatedData);
+
   showToast("Class updated successfully!");
   closeModal("editClassModal");
   loadClasses();
@@ -869,6 +883,8 @@ async function updateClass(event) {
 async function openEditClassModal(id) {
   const cls = await getRecord("classes", id);
   if (!cls) return;
+
+  // Set values in the form
   document.getElementById("editClassIdKey").value = cls.id;
   document.getElementById("editClassCode").value = cls.code;
   document.getElementById("editCourseName").value = cls.name;
@@ -876,17 +892,26 @@ async function openEditClassModal(id) {
   document.getElementById("editClassSemester").value = cls.semester;
   document.getElementById("editClassYear").value = cls.year;
   document.getElementById("editClassCredits").value = cls.credits;
+
+  // Load Faculty List
   const allFaculty = await getAll("faculty");
   const select = document.getElementById("editClassFaculty");
   select.innerHTML = '<option value="">-- Select Faculty --</option>';
+
   allFaculty.forEach((fac) => {
-    const name = `${fac.firstName} ${fac.lastName}`;
+    // FIX: Use lowercase keys (firstname, lastname) to match database
+    const name = `${fac.firstname} ${fac.lastname}`;
+
     const opt = document.createElement("option");
     opt.value = name;
     opt.textContent = name;
+
+    // Check selection against stored faculty name
     if (name === cls.faculty) opt.selected = true;
+
     select.appendChild(opt);
   });
+
   openModal("editClassModal");
 }
 
