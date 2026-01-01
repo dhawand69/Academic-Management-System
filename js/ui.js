@@ -323,67 +323,62 @@ function autoFillStudentDetails() {
 async function loadStudents() {
   const allStudents = await getAll("students");
   const tbody = document.getElementById("usersTableBody");
-  const bulkContainer = document.getElementById("bulkActionContainer");
   const countLabel = document.getElementById("studentCount");
+  const bulkContainer = document.getElementById("bulkActionContainer");
 
-  // Safety Check: Ensure global filter exists
+  // Ensure state exists
   if (typeof activeStudentFilter === "undefined") {
     window.activeStudentFilter = { year: "all", branch: "all", semester: null };
   }
 
   tbody.innerHTML = "";
 
-  // 1. FILTERING LOGIC (Fixed to be robust)
+  // --- FILTERING LOGIC ---
   displayedStudents = allStudents.filter((student) => {
-    // Year Filter
+    // A. YEAR FILTER
     if (activeStudentFilter.year !== "all") {
       const sem = parseInt(student.semester) || 1;
-      // Calculate Year from Sem: (1,2)=1, (3,4)=2, (5,6)=3, (7,8)=4
-      const calculatedYear = Math.ceil(sem / 2);
+      const calculatedYear = Math.ceil(sem / 2); // 1,2->1 | 3,4->2 ...
 
-      // Compare calculated year with filter year
       if (calculatedYear != activeStudentFilter.year) return false;
     }
 
-    // Semester Filter
-    if (activeStudentFilter.semester !== null) {
-      if (student.semester != activeStudentFilter.semester) return false;
-    }
-
-    // Branch Filter (FIX: Loose Comparison)
+    // B. BRANCH FILTER
     if (activeStudentFilter.branch !== "all") {
+      // Normalize strings for comparison (remove spaces, lowercase)
       const sDept = (student.department || "").toLowerCase().trim();
       const fDept = activeStudentFilter.branch.toLowerCase().trim();
 
-      // Allows partial match (e.g., "CSE" matches "CSE(Networks)")
+      // Use includes() to handle small variations like "CSE" vs "Computer Science"
       if (!sDept.includes(fDept) && !fDept.includes(sDept)) return false;
     }
+
     return true;
   });
 
-  // 2. SORTING LOGIC (Added: Sort by Roll No Ascending)
+  // --- SORTING (Roll No Ascending) ---
   displayedStudents.sort((a, b) => {
     const rollA = String(a.rollno || "").trim();
     const rollB = String(b.rollno || "").trim();
-    // 'numeric: true' handles 1, 2, 10 correctly
     return rollA.localeCompare(rollB, undefined, {
       numeric: true,
       sensitivity: "base",
     });
   });
 
-  // 3. RENDER TABLE
+  // --- RENDER TABLE ---
   if (displayedStudents.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#999;">
           No students found matching current filters.
       </td></tr>`;
+    if (bulkContainer) bulkContainer.style.display = "none";
   } else {
     displayedStudents.forEach((student) => {
       const isSelected = selectedStudentIds.has(student.id);
       const tr = document.createElement("tr");
 
-      // Escape special chars for safe HTML
       const fullName = `${student.firstname || ""} ${student.lastname || ""}`;
+      const year = Math.ceil((student.semester || 1) / 2);
 
       tr.innerHTML = `
             <td>
@@ -399,11 +394,11 @@ async function loadStudents() {
                 ${student.rollno || "N/A"}
             </td>
             <td>${fullName}</td>
-            <td>${student.department || ""}</td>
-            <td>${Math.ceil((student.semester || 1) / 2)}</td>
+            <td>${student.department || "-"}</td>
+            <td>${year}</td>
             <td>
                 <span class="status-badge" style="background:#eaf6fd; color:#2c5282;">
-                    Sem ${student.semester || ""}
+                    Sem ${student.semester || "1"}
                 </span>
             </td>
             <td>
@@ -415,19 +410,13 @@ async function loadStudents() {
             </td>`;
       tbody.appendChild(tr);
     });
-  }
 
-  // 4. UPDATE UI COUNTS
-  if (countLabel) countLabel.textContent = `(${displayedStudents.length})`;
-
-  if (activeStudentFilter.year !== "all" && displayedStudents.length > 0) {
     if (bulkContainer) bulkContainer.style.display = "flex";
-  } else {
-    if (bulkContainer) bulkContainer.style.display = "none";
   }
 
-  updateSelectionUI();
-
+  // Update Counts
+  if (countLabel) countLabel.textContent = `(${displayedStudents.length})`;
+  if (typeof updateSelectionUI === "function") updateSelectionUI();
   if (typeof updateDashboard === "function") updateDashboard();
 }
 
@@ -1139,52 +1128,85 @@ function getTargetStudents() {
 }
 
 function filterStudents(year) {
+  // 1. Update State
   activeStudentFilter.year = year;
   activeStudentFilter.semester = null;
-  selectedStudentIds.clear();
-  document.getElementById("masterCheckbox").checked = false;
-  const buttons = document.getElementById("yearFilterGroup").children;
-  for (let btn of buttons) {
-    btn.classList.remove("active");
-  }
-  event.target.classList.add("active");
-  const semContainer = document.getElementById("semesterFilterGroup");
-  const semButtons = document.getElementById("semesterButtons");
-  semButtons.innerHTML = "";
-  if (year === "all") {
-    semContainer.style.display = "none";
-  } else {
-    semContainer.style.display = "block";
-    const startSem = (year - 1) * 2 + 1;
-    const endSem = startSem + 1;
-    const allBtn = document.createElement("button");
-    allBtn.className = "filter-btn active";
-    allBtn.textContent = "All";
-    allBtn.onclick = (e) => filterBySemester(null, e);
-    semButtons.appendChild(allBtn);
-    for (let i = startSem; i <= endSem; i++) {
-      const btn = document.createElement("button");
-      btn.className = "filter-btn";
-      btn.textContent = `Sem ${i}`;
-      btn.onclick = (e) => filterBySemester(i, e);
-      semButtons.appendChild(btn);
+  if (typeof selectedStudentIds !== "undefined") selectedStudentIds.clear();
+
+  const masterCheck = document.getElementById("masterCheckbox");
+  if (masterCheck) masterCheck.checked = false;
+
+  // 2. Update Year Buttons UI
+  const group = document.getElementById("yearFilterGroup");
+  if (group) {
+    for (let btn of group.children) {
+      btn.classList.remove("active");
+    }
+    // Highlight the clicked button
+    if (event && event.target) {
+      event.target.classList.add("active");
     }
   }
+
+  // 3. Handle Semester Buttons (Dynamic Generation)
+  const semContainer = document.getElementById("semesterFilterGroup");
+  const semButtons = document.getElementById("semesterButtons");
+
+  // Only run this logic if the HTML elements exist
+  if (semContainer && semButtons) {
+    semButtons.innerHTML = ""; // Clear old buttons
+
+    if (year === "all") {
+      semContainer.style.display = "none";
+    } else {
+      semContainer.style.display = "block";
+
+      // Calculate semesters for the year (e.g., Year 1 = Sem 1, 2)
+      const startSem = (year - 1) * 2 + 1;
+      const endSem = startSem + 1;
+
+      // "All" Button for Semester
+      const allBtn = document.createElement("button");
+      allBtn.className = "filter-btn active";
+      allBtn.textContent = "All";
+      allBtn.onclick = (e) => filterBySemester(null, e);
+      semButtons.appendChild(allBtn);
+
+      // Individual Semester Buttons
+      for (let i = startSem; i <= endSem; i++) {
+        const btn = document.createElement("button");
+        btn.className = "filter-btn";
+        btn.textContent = `Sem ${i}`;
+        btn.onclick = (e) => filterBySemester(i, e);
+        semButtons.appendChild(btn);
+      }
+    }
+  }
+
+  // 4. Reload Data
   loadStudents();
 }
 
 function filterBySemester(sem, event) {
   activeStudentFilter.semester = sem;
-  selectedStudentIds.clear();
-  document.getElementById("masterCheckbox").checked = false;
-  const buttons = document.getElementById("semesterButtons").children;
-  for (let btn of buttons) {
-    btn.classList.remove("active");
+  if (typeof selectedStudentIds !== "undefined") selectedStudentIds.clear();
+
+  const masterCheck = document.getElementById("masterCheckbox");
+  if (masterCheck) masterCheck.checked = false;
+
+  // Update UI (Highlight active semester button)
+  const semButtons = document.getElementById("semesterButtons");
+  if (semButtons) {
+    for (let btn of semButtons.children) {
+      btn.classList.remove("active");
+    }
+    if (event && event.target) {
+      event.target.classList.add("active");
+    }
   }
-  event.target.classList.add("active");
+
   loadStudents();
 }
-
 function filterByBranch(branch) {
   activeStudentFilter.branch = branch;
   selectedStudentIds.clear();
@@ -1390,4 +1412,16 @@ async function restoreClass(id) {
   await updateRecord("classes", updatedData);
   showToast("Class restored successfully!", "success");
   loadClasses();
+}
+
+function filterStudentsByBranch() {
+  // Get value from the dropdown
+  const branchSelect = document.getElementById("studentBranchFilter"); // Note: We need to update HTML ID to match this
+  const branch = branchSelect ? branchSelect.value : "all";
+
+  // Update Global State
+  activeStudentFilter.branch = branch;
+
+  // Reload Table
+  loadStudents();
 }
