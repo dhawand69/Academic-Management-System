@@ -144,10 +144,10 @@
                             </div>
                         </div>
 
-                        <div class="filter-group" style="margin-top: 15px;">
-                            <span class="filter-label">🏫 Select Branch:</span>
-                            <select id="branchFilterSelect" onchange="filterByBranch(this.value)" class="branch-select">
-                                <option value="all">All Branches</option>
+                        <div class="filter-group">
+                            <span class="filter-label">🏢 Filter by Branch:</span>
+                            <select id="classBranchFilter" onchange="loadClasses()" class="branch-select">
+                                <option value="all">All Departments</option>
                                 <option value="Computer Science">Computer Science</option>
                                 <option value="Civil">Civil</option>
                                 <option value="Mechanical">Mechanical</option>
@@ -155,13 +155,18 @@
                                 <option value="ECE">ECE</option>
                                 <option value="CSE(Cyber Security)">CSE(Cyber Security)</option>
                                 <option value="CSE(Networks)">CSE(Networks)</option>
+                                <option value="Applied Science">Applied Science</option>
                             </select>
                         </div>
 
-                        <div class="filter-group" id="semesterFilterGroup" style="display:none;">
-                            <span class="filter-label">📅 Select Semester:</span>
-                            <div class="filter-btn-group" id="semesterButtons">
-                                <!-- Dynamic buttons -->
+                        <div class="filter-group">
+                            <span class="filter-label">🎓 Filter by Year:</span>
+                            <div class="filter-btn-group" id="classYearFilterGroup">
+                                <button class="filter-btn active" onclick="filterClasses('all')">All</button>
+                                <button class="filter-btn" onclick="filterClasses(1)">1st Year</button>
+                                <button class="filter-btn" onclick="filterClasses(2)">2nd Year</button>
+                                <button class="filter-btn" onclick="filterClasses(3)">3rd Year</button>
+                                <button class="filter-btn" onclick="filterClasses(4)">4th Year</button>
                             </div>
                         </div>
 
