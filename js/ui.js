@@ -1156,43 +1156,41 @@ function getTargetStudents() {
 }
 
 function filterStudents(year) {
-  // Update State
   activeStudentFilter.year = year;
-  activeStudentFilter.semester = null;
+  activeStudentFilter.semester = null; // Reset semester when year changes
   if (typeof selectedStudentIds !== "undefined") selectedStudentIds.clear();
 
-  // Update UI (Year Buttons)
+  // 1. Update Year Buttons Style
   const group = document.getElementById("yearFilterGroup");
   if (group) {
     for (let btn of group.children) btn.classList.remove("active");
     if (event && event.target) event.target.classList.add("active");
   }
 
-  // --- SEMESTER BUTTON GENERATION ---
+  // 2. Generate Semester Buttons
   const semContainer = document.getElementById("semesterFilterGroup");
   const semButtons = document.getElementById("semesterButtons");
 
-  // Only run if HTML elements exist (prevents crashes)
   if (semContainer && semButtons) {
-    semButtons.innerHTML = "";
+    semButtons.innerHTML = ""; // Clear old buttons
 
     if (year === "all") {
       semContainer.style.display = "none";
     } else {
       semContainer.style.display = "block";
 
-      // Calculate semesters: Year 1 -> [1, 2], Year 2 -> [3, 4]
+      // LOGIC: Year 1 -> 1,2 | Year 2 -> 3,4 | Year 3 -> 5,6
       const startSem = (year - 1) * 2 + 1;
       const endSem = startSem + 1;
 
-      // "All" Button
+      // "All Sems" Button
       const allBtn = document.createElement("button");
       allBtn.className = "filter-btn active";
       allBtn.textContent = "All";
       allBtn.onclick = (e) => filterBySemester(null, e);
       semButtons.appendChild(allBtn);
 
-      // Individual Sem Buttons
+      // Specific Sem Buttons
       for (let i = startSem; i <= endSem; i++) {
         const btn = document.createElement("button");
         btn.className = "filter-btn";
@@ -1210,7 +1208,7 @@ function filterBySemester(sem, event) {
   activeStudentFilter.semester = sem;
   if (typeof selectedStudentIds !== "undefined") selectedStudentIds.clear();
 
-  // Update Button UI
+  // Update Active Style
   const semButtons = document.getElementById("semesterButtons");
   if (semButtons) {
     for (let btn of semButtons.children) btn.classList.remove("active");
@@ -1219,6 +1217,7 @@ function filterBySemester(sem, event) {
 
   loadStudents();
 }
+
 function filterByBranch(branch) {
   activeStudentFilter.branch = branch;
   selectedStudentIds.clear();
@@ -1229,47 +1228,59 @@ function filterByBranch(branch) {
 function filterClasses(year) {
   activeClassFilter.year = year;
   activeClassFilter.semester = null;
-  const buttons = document.getElementById("classYearFilterGroup").children;
-  for (let btn of buttons) {
-    btn.classList.remove("active");
+
+  // 1. Update Year Buttons Style
+  const group = document.getElementById("classYearFilterGroup");
+  if (group) {
+    for (let btn of group.children) btn.classList.remove("active");
+    if (event && event.target) event.target.classList.add("active");
   }
-  event.target.classList.add("active");
+
+  // 2. Generate Semester Buttons
   const semContainer = document.getElementById("classSemesterFilterGroup");
   const semButtons = document.getElementById("classSemesterButtons");
-  semButtons.innerHTML = "";
-  if (year === "all") {
-    semContainer.style.display = "none";
-  } else {
-    semContainer.style.display = "block";
-    const startSem = (year - 1) * 2 + 1;
-    const endSem = startSem + 1;
-    const allBtn = document.createElement("button");
-    allBtn.className = "filter-btn active";
-    allBtn.textContent = "All";
-    allBtn.onclick = (e) => filterClassesBySemester(null, e);
-    semButtons.appendChild(allBtn);
-    for (let i = startSem; i <= endSem; i++) {
-      const btn = document.createElement("button");
-      btn.className = "filter-btn";
-      btn.textContent = `Sem ${i}`;
-      btn.onclick = (e) => filterClassesBySemester(i, e);
-      semButtons.appendChild(btn);
+
+  if (semContainer && semButtons) {
+    semButtons.innerHTML = "";
+
+    if (year === "all") {
+      semContainer.style.display = "none";
+    } else {
+      semContainer.style.display = "block";
+
+      // SAME LOGIC: Year 1 -> 1,2 | Year 2 -> 3,4 ...
+      const startSem = (year - 1) * 2 + 1;
+      const endSem = startSem + 1;
+
+      const allBtn = document.createElement("button");
+      allBtn.className = "filter-btn active";
+      allBtn.textContent = "All";
+      allBtn.onclick = (e) => filterClassesBySemester(null, e);
+      semButtons.appendChild(allBtn);
+
+      for (let i = startSem; i <= endSem; i++) {
+        const btn = document.createElement("button");
+        btn.className = "filter-btn";
+        btn.textContent = `Sem ${i}`;
+        btn.onclick = (e) => filterClassesBySemester(i, e);
+        semButtons.appendChild(btn);
+      }
     }
   }
+
   loadClasses();
 }
 
 // 5. FILTER BUTTONS (Year)
-function filterClasses(year) {
-  activeClassFilter.year = year;
-  activeClassFilter.semester = null;
+function filterClassesBySemester(sem, event) {
+  activeClassFilter.semester = sem;
 
-  const group = document.getElementById("classYearFilterGroup");
-  if (group) {
-    for (let btn of group.children) btn.classList.remove("active");
-    if (typeof event !== "undefined" && event.target)
-      event.target.classList.add("active");
+  const semButtons = document.getElementById("classSemesterButtons");
+  if(semButtons) {
+      for (let btn of semButtons.children) btn.classList.remove("active");
+      if(event && event.target) event.target.classList.add("active");
   }
+
   loadClasses();
 }
 
