@@ -1,5 +1,10 @@
 let showArchivedClasses = false;
 
+// Ensure filter state exists
+if (typeof activeClassFilter === "undefined") {
+  window.activeClassFilter = { year: "all", semester: null };
+}
+
 function showToast(message, type = "success") {
   const container = document.getElementById("toastContainer");
   const toast = document.createElement("div");
@@ -847,19 +852,15 @@ async function addClass(event) {
   closeModal("addClassModal");
   loadClasses();
 }
-
 async function updateClass(event) {
   event.preventDefault();
 
-  // 1. Get ID
   const idKey = parseInt(document.getElementById("editClassIdKey").value);
-
-  // 2. Get old record (to preserve creation date)
   const oldRecord = await getRecord("classes", idKey);
 
-  // 3. Construct ONE object containing the ID
+  // FIX: Put ID INSIDE the object
   const updatedData = {
-    id: idKey, // <--- CRITICAL FIX: ID must be inside the object
+    id: idKey,
     code: document.getElementById("editClassCode").value,
     name: document.getElementById("editCourseName").value,
     department: document.getElementById("editClassDept").value,
@@ -867,14 +868,13 @@ async function updateClass(event) {
     faculty: document.getElementById("editClassFaculty").value,
     year: parseInt(document.getElementById("editClassYear").value),
     credits: parseInt(document.getElementById("editClassCredits").value),
-    // Fix: Use 'createdat' (lowercase) to match database schema
     createdat: oldRecord
       ? oldRecord.createdat || oldRecord.created_at
       : new Date().toISOString(),
     updatedat: new Date().toISOString(),
   };
 
-  // 4. Pass only TWO arguments (table name, object)
+  // Pass only 2 arguments: Table Name, Object
   await updateRecord("classes", updatedData);
 
   showToast("Class updated successfully!");
@@ -886,7 +886,7 @@ async function openEditClassModal(id) {
   const cls = await getRecord("classes", id);
   if (!cls) return;
 
-  // Set values in the form
+  // Set form values
   document.getElementById("editClassIdKey").value = cls.id;
   document.getElementById("editClassCode").value = cls.code;
   document.getElementById("editCourseName").value = cls.name;
@@ -901,14 +901,14 @@ async function openEditClassModal(id) {
   select.innerHTML = '<option value="">-- Select Faculty --</option>';
 
   allFaculty.forEach((fac) => {
-    // FIX: Use lowercase keys (firstname, lastname) to match database
+    // FIX: Use LOWERCASE keys to match database (firstname, lastname)
     const name = `${fac.firstname} ${fac.lastname}`;
 
     const opt = document.createElement("option");
     opt.value = name;
     opt.textContent = name;
 
-    // Check selection against stored faculty name
+    // Check selection
     if (name === cls.faculty) opt.selected = true;
 
     select.appendChild(opt);
@@ -916,12 +916,11 @@ async function openEditClassModal(id) {
 
   openModal("editClassModal");
 }
-
 async function loadClasses() {
   const allClasses = await getAll("classes");
   const tbody = document.getElementById("classesTableBody");
 
-  // 1. Inject Archive Toggle Button (if missing)
+  // Inject Archive Toggle Button if missing
   const filterContainer = document.querySelector(
     "#adminClasses .filter-container"
   );
@@ -929,7 +928,7 @@ async function loadClasses() {
     const btn = document.createElement("button");
     btn.id = "btnToggleArchive";
     btn.className = "btn btn-secondary";
-    btn.style.marginTop = "15px"; // Added spacing
+    btn.style.marginTop = "15px";
     btn.innerHTML = "🗄️ Show Archived Classes";
     btn.onclick = toggleArchivedView;
     filterContainer.appendChild(btn);
@@ -937,21 +936,20 @@ async function loadClasses() {
 
   tbody.innerHTML = "";
 
-  // 2. GET BRANCH FILTER VALUE
-  const branchFilter = document.getElementById("classBranchFilter")
-    ? document.getElementById("classBranchFilter").value
-    : "all";
+  // GET BRANCH FILTER
+  const branchFilterEl = document.getElementById("classBranchFilter");
+  const branchFilter = branchFilterEl ? branchFilterEl.value : "all";
 
   const displayedClasses = allClasses.filter((cls) => {
-    // A. ARCHIVE STATUS FILTER
-    const isActive = cls.is_active !== false;
+    // A. ARCHIVE FILTER
+    const isActive = cls.is_active !== false; // Default to true
     if (showArchivedClasses) {
-      if (isActive) return false; // In archive mode, hide active
+      if (isActive) return false;
     } else {
-      if (!isActive) return false; // In active mode, hide archived
+      if (!isActive) return false;
     }
 
-    // B. BRANCH FILTER (New!)
+    // B. BRANCH FILTER
     if (branchFilter !== "all") {
       if (cls.department !== branchFilter) return false;
     }
@@ -964,24 +962,15 @@ async function loadClasses() {
         return false;
     }
 
-    // D. SEMESTER FILTER
-    if (activeClassFilter.semester !== null) {
-      if (cls.semester !== activeClassFilter.semester) return false;
-    }
-
     return true;
   });
 
-  // 3. Render Table
   if (displayedClasses.length === 0) {
+    const mode = showArchivedClasses ? "archived" : "active";
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:gray;">
-        ${
-          showArchivedClasses
-            ? "No archived classes found for this branch."
-            : "No active classes found for this branch."
-        }
+        No ${mode} classes found matching these filters.
       </td></tr>`;
-    updateDashboard();
+    if (typeof updateDashboard === "function") updateDashboard();
     return;
   }
 
@@ -990,13 +979,11 @@ async function loadClasses() {
 
     let actionButtons = "";
     if (showArchivedClasses) {
-      // Restore button for archived items
       actionButtons = `<button class="btn btn-small btn-success" onclick="restoreClass(${cls.id})">♻️ Restore</button>`;
     } else {
-      // Standard buttons for active items
       actionButtons = `
             <button class="btn btn-small btn-info" onclick="openEditClassModal(${cls.id})">Edit</button>
-            <button class="btn btn-small btn-warning" onclick="archiveClass(${cls.id})" title="Archive to reuse code">🗄️</button>
+            <button class="btn btn-small btn-warning" onclick="archiveClass(${cls.id})" title="Archive">🗄️</button>
             <button class="btn btn-small btn-danger" onclick="deleteClass(${cls.id})">🗑️</button>
         `;
     }
@@ -1014,7 +1001,7 @@ async function loadClasses() {
     tbody.appendChild(tr);
   });
 
-  updateDashboard();
+  if (typeof updateDashboard === "function") updateDashboard();
 }
 
 async function deleteClass(id) {
@@ -1238,13 +1225,17 @@ function filterClasses(year) {
   loadClasses();
 }
 
-function filterClassesBySemester(sem, event) {
-  activeClassFilter.semester = sem;
-  const buttons = document.getElementById("classSemesterButtons").children;
-  for (let btn of buttons) {
-    btn.classList.remove("active");
+// 5. FILTER BUTTONS (Year)
+function filterClasses(year) {
+  activeClassFilter.year = year;
+  activeClassFilter.semester = null;
+
+  const group = document.getElementById("classYearFilterGroup");
+  if (group) {
+    for (let btn of group.children) btn.classList.remove("active");
+    if (typeof event !== "undefined" && event.target)
+      event.target.classList.add("active");
   }
-  event.target.classList.add("active");
   loadClasses();
 }
 
@@ -1343,7 +1334,6 @@ function toggleDateRange() {
   }
 }
 
-// Toggle between Active and Archived views
 function toggleArchivedView() {
   showArchivedClasses = !showArchivedClasses;
   const btn = document.getElementById("btnToggleArchive");
@@ -1364,23 +1354,19 @@ async function archiveClass(id) {
   if (!cls) return;
 
   showConfirm(
-    `Archive "${cls.code}"? \n\nThis will hide the class and rename its code to "${cls.code}_${cls.year}_ARCHIVED" so you can reuse the code "${cls.code}" for a new batch.`,
+    `Archive "${cls.code}"? \n\nThis will hide the class and rename it to "${cls.code}_ARCHIVED" so you can reuse the code.`,
     async function () {
-      // 1. Rename code to free it up (e.g., CS101 -> CS101_2024_ARCHIVED)
-      const oldCode = cls.code;
-      const newCode = `${oldCode}_${cls.year}_ARCHIVED_${Date.now()
+      const newCode = `${cls.code}_${cls.year}_ARCHIVED_${Date.now()
         .toString()
         .slice(-4)}`;
-
       const updatedData = {
         id: cls.id,
         code: newCode,
         is_active: false, // Mark as archived
         updatedat: new Date().toISOString(),
       };
-
       await updateRecord("classes", updatedData);
-      showToast(`Class archived! Code renamed to ${newCode}`, "success");
+      showToast("Class archived successfully!", "success");
       loadClasses();
     }
   );
@@ -1391,9 +1377,7 @@ async function restoreClass(id) {
   const cls = await getRecord("classes", id);
   if (!cls) return;
 
-  // Ask user for the new clean code (remove the _ARCHIVED garbage)
   const cleanCode = cls.code.split("_")[0];
-
   const newCode = prompt(`Enter the code to restore this class as:`, cleanCode);
   if (!newCode) return;
 
@@ -1403,7 +1387,6 @@ async function restoreClass(id) {
     is_active: true,
     updatedat: new Date().toISOString(),
   };
-
   await updateRecord("classes", updatedData);
   showToast("Class restored successfully!", "success");
   loadClasses();
