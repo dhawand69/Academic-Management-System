@@ -887,6 +887,7 @@ async function loadClasses() {
   const allClasses = await getAll("classes");
   const tbody = document.getElementById("classesTableBody");
 
+  // Inject Archive Button if missing
   const filterContainer = document.querySelector(
     "#adminClasses .filter-container"
   );
@@ -901,10 +902,23 @@ async function loadClasses() {
   }
 
   tbody.innerHTML = "";
-  const branchFilterEl = document.getElementById("classBranchFilter");
-  const branchFilter = branchFilterEl ? branchFilterEl.value : "all";
+
+  // --- CRITICAL FIX: Read the Correct Filter Dropdown ---
+  let branchFilter = "all";
+
+  if (showArchivedClasses) {
+    // In Archive Mode: Read from the NEW dropdown
+    const el = document.getElementById("archiveClassBranchFilter");
+    if (el) branchFilter = el.value;
+  } else {
+    // In Active Mode: Read from the OLD dropdown
+    const el = document.getElementById("classBranchFilter");
+    if (el) branchFilter = el.value;
+  }
+  // -----------------------------------------------------
 
   const displayedClasses = allClasses.filter((cls) => {
+    // A. Archive Status
     const isActive = cls.is_active !== false;
     if (showArchivedClasses) {
       if (isActive) return false;
@@ -912,8 +926,12 @@ async function loadClasses() {
       if (!isActive) return false;
     }
 
-    if (branchFilter !== "all" && cls.department !== branchFilter) return false;
+    // B. Branch Filter
+    if (branchFilter !== "all") {
+      if (cls.department !== branchFilter) return false;
+    }
 
+    // C. Year Filter
     if (activeClassFilter.year !== "all") {
       const expectedMinSem = (activeClassFilter.year - 1) * 2 + 1;
       const expectedMaxSem = expectedMinSem + 1;
@@ -921,6 +939,7 @@ async function loadClasses() {
         return false;
     }
 
+    // D. Semester Filter
     if (
       activeClassFilter.semester !== null &&
       cls.semester !== activeClassFilter.semester
@@ -932,8 +951,7 @@ async function loadClasses() {
 
   if (displayedClasses.length === 0) {
     const mode = showArchivedClasses ? "archived" : "active";
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:gray;">No ${mode} classes found matching these filters.</td></tr>`;
-    if (typeof updateDashboard === "function") updateDashboard();
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px;">No ${mode} classes found for the selected filters.</td></tr>`;
     return;
   }
 
@@ -945,17 +963,22 @@ async function loadClasses() {
     } else {
       actionButtons = `
             <button class="btn btn-small btn-info" onclick="openEditClassModal(${cls.id})">Edit</button>
-            <button class="btn btn-small btn-warning" onclick="archiveClass(${cls.id})" title="Archive">🗄️</button>
+            <button class="btn btn-small btn-warning" onclick="archiveClass(${cls.id})">🗄️</button>
             <button class="btn btn-small btn-danger" onclick="deleteClass(${cls.id})">🗑️</button>`;
     }
 
-    tr.innerHTML = `<td>${cls.code}</td><td>${cls.name}</td><td>${cls.department}</td><td>${cls.semester}</td><td>${cls.faculty}</td><td>${cls.year}</td><td>${cls.credits}</td><td>${actionButtons}</td>`;
+    tr.innerHTML = `
+        <td>${cls.code}</td>
+        <td>${cls.name}</td>
+        <td>${cls.department}</td>
+        <td>${cls.semester}</td>
+        <td>${cls.faculty}</td>
+        <td>${cls.year}</td>
+        <td>${cls.credits}</td>
+        <td>${actionButtons}</td>`;
     tbody.appendChild(tr);
   });
-
-  if (typeof updateDashboard === "function") updateDashboard();
 }
-
 async function deleteClass(id) {
   showConfirm("Delete this class?", async function () {
     await deleteRecord("classes", id);
@@ -1238,7 +1261,7 @@ function toggleDateRange() {
 function toggleArchivedView() {
   showArchivedClasses = !showArchivedClasses;
 
-  // 1. Update Button Text & Style
+  // 1. Update Button Text
   const btn = document.getElementById("btnToggleArchive");
   if (btn) {
     btn.textContent = showArchivedClasses
@@ -1249,22 +1272,30 @@ function toggleArchivedView() {
       : "btn btn-secondary";
   }
 
-  // 2. Toggle Branch Filter Visibility
-  const filterContainer = document.getElementById(
+  // 2. Toggle Visibility of Filter Containers
+  const activeContainer = document.getElementById(
+    "activeBranchFilterContainer"
+  );
+  const archiveContainer = document.getElementById(
     "archiveBranchFilterContainer"
   );
-  if (filterContainer) {
-    // Show filter ONLY if we are in Archived mode
-    filterContainer.style.display = showArchivedClasses ? "block" : "none";
 
-    // Optional: Reset filter to 'All' when going back to Active view
-    if (!showArchivedClasses) {
-      const select = document.getElementById("classBranchFilter");
-      if (select) select.value = "all";
+  if (activeContainer && archiveContainer) {
+    if (showArchivedClasses) {
+      // Show Archive Filter, Hide Active Filter
+      activeContainer.style.display = "none";
+      archiveContainer.style.display = "block";
+      // Reset Archive filter to 'All' to avoid confusion on toggle
+      document.getElementById("archiveClassBranchFilter").value = "all";
+    } else {
+      // Show Active Filter, Hide Archive Filter
+      activeContainer.style.display = "block";
+      archiveContainer.style.display = "none";
+      // Reset Active filter to 'All'
+      document.getElementById("classBranchFilter").value = "all";
     }
   }
 
-  // 3. Reload Data
   loadClasses();
 }
 
