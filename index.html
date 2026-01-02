@@ -134,9 +134,9 @@
                     <!-- Improved Filter Container from Code 2 -->
                     <div class="filter-container">
                         <!-- Branch Filter First (from Code 2) -->
-                        <div class="filter-group">
+                        <div class="filter-group" id="activeBranchFilterContainer">
                             <span class="filter-label">🏢 Filter by Branch:</span>
-                            <select id="studentBranchFilter" onchange="filterStudentsByBranch()" class="branch-select">
+                            <select id="classBranchFilter" onchange="loadClasses()" class="branch-select">
                                 <option value="all">All Departments</option>
                                 <option value="Computer Science">Computer Science</option>
                                 <option value="Civil">Civil</option>
@@ -282,6 +282,7 @@
                 <!-- Classes Tab -->
                 <div id="adminClasses" class="tab-content">
                     <h2 class="section-title">🏫 Classes & Subjects</h2>
+
                     <div class="action-buttons">
                         <button class="btn btn-primary" onclick="openModal('addClassModal')">+ Add Class</button>
                         <button class="btn btn-success" onclick="openBatchClassModal()">📂 Batch Class Creator</button>
@@ -305,10 +306,10 @@
                             </select>
                         </div>
 
-                        <div class="filter-group" id="archiveBranchFilterContainer"
-                            style="display:none; margin-bottom: 15px;">
-                            <span class="filter-label">🏢 Filter Archived by Branch:</span>
-                            <select id="classBranchFilter" onchange="loadClasses()" class="branch-select">
+                        <div class="filter-group" id="archiveBranchFilterContainer" style="display:none;">
+                            <span class="filter-label" style="color:#e67e22;">🗄️ Filter Archived by Branch:</span>
+                            <select id="archiveClassBranchFilter" onchange="loadClasses()" class="branch-select"
+                                style="border-color:#e67e22;">
                                 <option value="all">All Departments</option>
                                 <option value="Computer Science">Computer Science</option>
                                 <option value="Civil">Civil</option>
@@ -336,11 +337,9 @@
                                 </div>
                             </div>
 
-                            <div class="filter-group" id="classSemesterFilterGroup"
-                                style="display:none; margin-top:10px;">
+                            <div class="filter-group" id="classSemesterFilterGroup" style="display:none;">
                                 <span class="filter-label">📅 Filter by Semester:</span>
                                 <div class="filter-btn-group" id="classSemesterButtons">
-                                    <!-- Semester buttons will be generated here by JavaScript -->
                                 </div>
                             </div>
                         </div>
@@ -358,9 +357,7 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="classesTableBody">
-                                <!-- Classes will be loaded here -->
-                            </tbody>
+                            <tbody id="classesTableBody"></tbody>
                         </table>
                     </div>
 
