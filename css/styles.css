@@ -1101,3 +1101,105 @@ input[type="radio"] {
     margin-top: 5px;
     display: block;
 }
+
+
+
+/* styles.css - Add to the very bottom */
+
+/* --- MOBILE OPTIMIZATIONS --- */
+
+/* 1. Responsive Table Wrapper */
+/* This class will allow tables to scroll horizontally on mobile */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    margin-bottom: 20px;
+    border: 1px solid var(--color-light);
+    border-radius: 8px;
+    background: white;
+}
+
+/* Ensure tables inside the wrapper don't shrink weirdly */
+.table-responsive table {
+    min-width: 600px; /* Forces scroll if screen is smaller than 600px */
+    margin-top: 0; /* Remove top margin inside wrapper */
+}
+
+/* 2. Mobile Specific Styles */
+@media (max-width: 768px) {
+
+    /* Stack Form Rows (Filters & Inputs) */
+    .form-row {
+        grid-template-columns: 1fr !important; /* Force single column */
+        gap: 15px;
+    }
+
+    /* Stack Flex Containers (Like Filter Groups) */
+    .filter-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .filter-group {
+        width: 100%;
+        margin-right: 0;
+    }
+
+    /* Make Tabs Scrollable (Instead of wrapping ugly) */
+    .tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 5px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox: Hide scrollbar */
+    }
+    
+    .tabs::-webkit-scrollbar {
+        display: none; /* Chrome/Safari: Hide scrollbar */
+    }
+
+    .tab-btn {
+        flex: 0 0 auto; /* Don't shrink buttons */
+        padding: 10px 15px;
+        font-size: 13px;
+    }
+
+    /* Dashboard Grid - Single Column */
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Stack Action Buttons */
+    .action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .action-buttons button, 
+    .action-buttons .btn {
+        width: 100%;
+        margin-bottom: 10px;
+        margin-left: 0 !important;
+    }
+
+    /* Adjust Modal Width */
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+        margin: 10px auto;
+    }
+
+    /* Adjust Font Sizes for readability */
+    th, td {
+        padding: 10px;
+        font-size: 13px;
+    }
+    
+    .navbar h1 {
+        font-size: 20px;
+    }
+}
