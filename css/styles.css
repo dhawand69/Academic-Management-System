@@ -37,7 +37,7 @@ body {
     justify-content: center;
     align-items: center;
     /* Professional "Academic" Gradient (Deep Slate to Muted Teal) */
-    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+    background: linear-gradient(135deg, #92c7fc 0%, #3498db 100%);
     z-index: 2000;
 }
 
