@@ -776,15 +776,34 @@
                 <div id="adminBulkExport" class="tab-content">
                     <h2 class="section-title">📤 Data Export & Backup</h2>
 
-                    <div class="alert alert-info">
-                        ℹ️ Select the specific datasets you want to export. You can download them as individual CSVs
-                        (Zipped) or a single JSON Backup file.
+                    <div class="dashboard-grid" style="margin-bottom: 25px;">
+                        <div class="stat-card"
+                            style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); padding: 15px;">
+                            <h3 style="font-size: 12px; margin-bottom: 5px;">Total Students</h3>
+                            <div class="value" id="exportStudentCount" style="font-size: 24px;">0</div>
+                            <small style="opacity: 0.8; font-size: 11px;">Available for export</small>
+                        </div>
+                        <div class="stat-card"
+                            style="background: linear-gradient(135deg, #00cec9, #81ecec); padding: 15px;">
+                            <h3 style="font-size: 12px; margin-bottom: 5px;">Total Faculty</h3>
+                            <div class="value" id="exportFacultyCount" style="font-size: 24px;">0</div>
+                            <small style="opacity: 0.8; font-size: 11px;">Registered members</small>
+                        </div>
+                        <div class="stat-card"
+                            style="background: linear-gradient(135deg, #fdcb6e, #ffeaa7); color: #d35400; padding: 15px;">
+                            <h3 style="font-size: 12px; margin-bottom: 5px; color: #d35400;">Total Classes</h3>
+                            <div class="value" id="exportClassCount" style="font-size: 24px;">0</div>
+                            <small style="opacity: 0.8; font-size: 11px;">Active subjects</small>
+                        </div>
                     </div>
 
                     <div class="filter-container" style="background: white; border: 1px solid #ddd; padding: 25px;">
-                        <h3 style="margin-top:0;">1. Select Data to Export</h3>
+                        <h3
+                            style="margin-top:0; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+                            ✅ Select Data to Export
+                        </h3>
 
-                        <div class="form-row" style="margin-top:15px;">
+                        <div class="form-row">
                             <div class="form-group">
                                 <label style="font-weight:bold; cursor:pointer;">
                                     <input type="checkbox" id="expStudents" checked> 👥 Students
@@ -797,7 +816,7 @@
                             </div>
                             <div class="form-group">
                                 <label style="font-weight:bold; cursor:pointer;">
-                                    <input type="checkbox" id="expClasses" checked> 🏫 Classes & Subjects
+                                    <input type="checkbox" id="expClasses" checked> 🏫 Classes
                                 </label>
                             </div>
                             <div class="form-group">
@@ -825,7 +844,7 @@
                             </div>
                         </div>
 
-                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid #eee;">
+                        <div style="margin-top:10px;">
                             <button class="btn btn-small btn-secondary" onclick="toggleExportCheckboxes(true)">Select
                                 All</button>
                             <button class="btn btn-small btn-secondary" onclick="toggleExportCheckboxes(false)">Deselect
@@ -835,30 +854,14 @@
 
                     <div class="filter-container"
                         style="background: #f8f9fa; border: 1px solid #ddd; padding: 25px; margin-top:20px;">
-                        <h3 style="margin-top:0;">2. Choose Export Format</h3>
                         <div class="action-buttons" style="justify-content: flex-start; gap: 20px;">
                             <button class="btn btn-primary" onclick="handleCustomExport('csv')">
                                 📥 Export as CSV (ZIP)
-                                <div style="font-size:11px; opacity:0.8;">Best for Excel / Reports</div>
                             </button>
 
                             <button class="btn btn-warning" onclick="handleCustomExport('json')">
                                 💾 Export as JSON (Backup)
-                                <div style="font-size:11px; opacity:0.8;">Best for Restore / Backup</div>
                             </button>
-                        </div>
-                    </div>
-
-                    <div class="template-section"
-                        style="margin-top:30px; border-top:2px dashed #ddd; padding-top:20px;">
-                        <h3>📥 Download Import Templates</h3>
-                        <div class="template-buttons">
-                            <button class="btn btn-secondary" onclick="downloadTemplate('students')">Students
-                                CSV</button>
-                            <button class="btn btn-secondary" onclick="downloadTemplate('faculty')">Faculty CSV</button>
-                            <button class="btn btn-secondary" onclick="downloadTemplate('classes')">Classes CSV</button>
-                            <button class="btn btn-secondary" onclick="downloadTemplate('internal_marks')">Internal
-                                Marks CSV</button>
                         </div>
                     </div>
                 </div>
