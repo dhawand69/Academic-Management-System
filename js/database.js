@@ -103,14 +103,13 @@ async function updateRecord(table, data) {
       return null;
     }
 
-    // Prepare the payload (Clean logic)
+    // Prepare payload: Copy data, remove ID (primary key), add timestamp
     const payload = { ...data };
-    delete payload.id; // Don't try to update the ID column
+    delete payload.id;
     payload.updatedat = new Date().toISOString();
 
     console.log(`[DB] Updating ${table} ID ${id} with:`, payload);
 
-    // DIRECT DATABASE CALL
     const { data: result, error } = await supabaseClient
       .from(table)
       .update(payload)
@@ -120,7 +119,7 @@ async function updateRecord(table, data) {
     if (error) {
       console.error(`❌ DB Error:`, error.message);
       if (typeof showToast === "function")
-        showToast(`DB Error: ${error.message}`, "error");
+        showToast(`Update Failed: ${error.message}`, "error");
       return null;
     }
 
