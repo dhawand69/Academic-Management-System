@@ -44,4 +44,40 @@ document.getElementById("attendanceDate").valueAsDate = new Date();
       ).value;
       await updateClassFilterDropdown(semesterFilter, branchFilter);
     });
+
+  // ==========================================
+  // DYNAMIC SEMESTER FILTER (Attendance History)
+  // ==========================================
+  const historyYearFilter = document.getElementById("adminYearFilter");
+
+  if (historyYearFilter) {
+    historyYearFilter.addEventListener("change", function () {
+      const year = this.value;
+      const semSelect = document.getElementById("adminSemesterFilter");
+
+      // 1. Clear current options
+      semSelect.innerHTML = '<option value="all">All Semesters</option>';
+
+      // 2. Determine which semesters to show
+      let startSem, endSem;
+
+      if (year === "all") {
+        startSem = 1;
+        endSem = 8;
+      } else {
+        const y = parseInt(year);
+        // Year 1 -> 1, 2 | Year 2 -> 3, 4 | etc.
+        startSem = (y - 1) * 2 + 1;
+        endSem = startSem + 1;
+      }
+
+      // 3. Generate Options
+      for (let i = startSem; i <= endSem; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `Semester ${i}`;
+        semSelect.appendChild(opt);
+      }
+    });
+  }
 })();
