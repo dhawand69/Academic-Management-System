@@ -773,374 +773,392 @@
                         </table>
                     </div>
                 </div>
-                <!-- Bulk Export Tab -->
                 <div id="adminBulkExport" class="tab-content">
-                    <h2 class="section-title">📤 Bulk Export</h2>
+                    <h2 class="section-title">📤 Data Export & Backup</h2>
 
                     <div class="alert alert-info">
-                        ℹ️ Export complete datasets in CSV format. Data is grouped by year where applicable.
+                        ℹ️ Select the specific datasets you want to export. You can download them as individual CSVs
+                        (Zipped) or a single JSON Backup file.
                     </div>
 
-                    <!-- Export Cards -->
-                    <div class="dashboard-grid export-grid">
-                        <div class="stat-card export-card" onclick="exportBulkData('students')" tabindex="0"
-                            role="button">
-                            <div class="export-card-inner">
-                                <div class="export-icon">👥</div>
-                                <h3 class="export-title">Export Students</h3>
-                                <p class="export-desc">
-                                    Year-wise grouping<br>
-                                    All student details included
-                                </p>
+                    <div class="filter-container" style="background: white; border: 1px solid #ddd; padding: 25px;">
+                        <h3 style="margin-top:0;">1. Select Data to Export</h3>
+
+                        <div class="form-row" style="margin-top:15px;">
+                            <div class="form-group">
+                                <label style="font-weight:bold; cursor:pointer;">
+                                    <input type="checkbox" id="expStudents" checked> 👥 Students
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label style="font-weight:bold; cursor:pointer;">
+                                    <input type="checkbox" id="expFaculty" checked> 👨‍🏫 Faculty
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label style="font-weight:bold; cursor:pointer;">
+                                    <input type="checkbox" id="expClasses" checked> 🏫 Classes & Subjects
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label style="font-weight:bold; cursor:pointer;">
+                                    <input type="checkbox" id="expYears" checked> 📅 Academic Years
+                                </label>
                             </div>
                         </div>
 
-                        <div class="stat-card export-card" onclick="exportBulkData('classes')" tabindex="0"
-                            role="button">
-                            <div class="export-card-inner">
-                                <div class="export-icon">📚</div>
-                                <h3 class="export-title">Export Classes</h3>
-                                <p class="export-desc">
-                                    Year-wise grouping<br>
-                                    All class details included
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="stat-card export-card" onclick="exportBulkData('faculty')" tabindex="0"
-                            role="button">
-                            <div class="export-card-inner">
-                                <div class="export-icon">👨‍🏫</div>
-                                <h3 class="export-title">Export Faculty</h3>
-                                <p class="export-desc">
-                                    Complete faculty list<br>
-                                    All details included
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="stat-card export-card" onclick="exportAllInOne()" tabindex="0" role="button">
-                            <div class="export-card-inner">
-                                <div class="export-icon">📦</div>
-                                <h3 class="export-title">Export All Data</h3>
-                                <p class="export-desc">
-                                    Students + Classes + Faculty<br>
-                                    Multiple CSV files
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="stat-card export-card" onclick="exportCompleteDatabase()" tabindex="0"
-                            role="button">
-                            <div class="export-card-inner">
-                                <div class="export-icon">💾</div>
-                                <h3 class="export-title">Complete Database Export</h3>
-                                <p class="export-desc">
-                                    EVERYTHING in one ZIP<br>
-                                    Including attendance history
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Statistics -->
-                    <div class="export-stats">
-                        <h3>📊 Export Statistics</h3>
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <h4>Students</h4>
-                                <div id="exportStudentCount" class="stat-number">0</div>
-                                <p>Total students available for export</p>
-                            </div>
-
-                            <div class="stat-item">
-                                <h4>Faculty</h4>
-                                <div id="exportFacultyCount" class="stat-number">0</div>
-                                <p>Total faculty available for export</p>
-                            </div>
-
-                            <div class="stat-item">
-                                <h4>Classes</h4>
-                                <div id="exportClassCount" class="stat-number">0</div>
-                                <p>Total classes available for export</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Settings Tab -->
-                <div id="adminSettings" class="tab-content">
-                    <h2 class="section-title">⚙️ Settings</h2>
-                    <form onsubmit="saveSettings(event)">
                         <div class="form-row">
                             <div class="form-group">
-                                <label>College Name:</label>
-                                <input type="text" id="collegeName" value="Engineering College">
+                                <label style="font-weight:bold; cursor:pointer;">
+                                    <input type="checkbox" id="expAttendance"> 📊 Attendance Records
+                                </label>
                             </div>
                             <div class="form-group">
-                                <label>Min Attendance (%):</label>
-                                <input type="number" id="minAttendance" value="75" min="0" max="100">
+                                <label style="font-weight:bold; cursor:pointer;">
+                                    <input type="checkbox" id="expInternalMarks"> 📝 Internal Marks
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label style="font-weight:bold; cursor:pointer;">
+                                    <input type="checkbox" id="expSettings" checked> ⚙️ Settings
+                                </label>
                             </div>
                         </div>
-                        <div class="action-buttons">
-                            <button type="submit" class="btn btn-success">💾 Save</button>
-                            <button type="button" class="btn btn-secondary" onclick="exportAllData()">📥 Export All
-                                Data</button>
-                            <button type="button" class="btn btn-danger" onclick="clearAllStudents()">🗑️ Clear All
-                                Students</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
 
-        <!-- FACULTY PANEL -->
-        <div id="facultyPanel" class="panel">
-            <div class="section">
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="switchFacultyTab('mark', event)">Mark
-                        Attendance</button>
-                    <button class="tab-btn" onclick="switchFacultyTab('history', event)">Date-wise History</button>
-                    <button class="tab-btn" onclick="switchFacultyTab('report', event)">Report</button>
-                    <button class="tab-btn" onclick="switchFacultyTab('marks', event)">Internal Marks</button>
-                </div>
-
-                <!-- Mark Attendance Tab -->
-                <div id="facultyMark" class="tab-content active">
-                    <h2 class="section-title">✅ Mark Attendance (Multi-Session Support)</h2>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Select Class:</label>
-                            <select id="facultyClassSelect" onchange="loadClassStudents()">
-                                <option value="">-- Select a class --</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Date:</label>
-                            <input type="date" id="attendanceDate">
-                        </div>
-                        <div class="form-group">
-                            <label>Session:</label>
-                            <select id="attendanceSession">
-                                <option value="1">Session 1</option>
-                                <option value="2">Session 2</option>
-                                <option value="3">Session 3</option>
-                                <option value="4">Session 4</option>
-                                <option value="5">Session 5</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="action-buttons">
-                        <button class="btn btn-secondary" onclick="openBulkAttendanceModal()">📂 Bulk
-                            Upload</button>
-                        <button class="btn btn-info" onclick="downloadAttendanceReport()">📥 Download Report
-                            (CSV)</button>
-                        <button class="btn btn-warning" id="multiSessionBtn" style="display:none;">📅 Mark Multiple
-                            Sessions</button>
-                    </div>
-
-                    <!-- Add Student/Batch to Session Logic -->
-                    <div class="extra-students-section">
-                        <h4>➕ Add Extra Students (Electives/Backlogs)</h4>
-
-                        <div class="add-single-student">
-                            <input type="text" id="addStudentToSessionInput"
-                                placeholder="Enter Roll No (e.g. 22156...)">
-                            <button class="btn btn-info" onclick="addStudentToSession()">Add Single Student</button>
-                        </div>
-
-                        <div class="add-batch-section">
-                            <select id="addBatchBranch">
-                                <option value="">-- Select Branch --</option>
-                                <option value="Computer Science">Computer Science</option>
-                                <option value="Civil">Civil</option>
-                                <option value="Mechanical">Mechanical</option>
-                                <option value="Electrical">Electrical</option>
-                                <option value="ECE">ECE</option>
-                                <option value="CSE(Cyber Security)">CSE(Cyber Security)</option>
-                                <option value="CSE(Networks)">CSE(Networks)</option>
-                                <option value="Applied Science">Applied Science</option>
-                            </select>
-                            <select id="addBatchSem">
-                                <option value="">-- Sem --</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                            </select>
-                            <button class="btn btn-warning" onclick="addBatchToSession()">Add Whole Batch</button>
-                        </div>
-                    </div>
-
-                    <div id="studentGridContainer" style="display:none;">
-                        <div id="studentGrid" class="student-grid"></div>
-                        <div class="action-buttons">
-                            <button class="btn btn-success" onclick="submitAttendance()">✔️ Submit Attendance for
-                                Session <span id="currentSessionDisplay">1</span></button>
-                            <button class="btn btn-secondary" onclick="resetAttendance()">🔄 Reset</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Date-wise History Tab -->
-                <div id="facultyHistory" class="tab-content">
-                    <h2 class="section-title">📅 Attendance History (Multi-Session)</h2>
-                    <div class="table-header">
-                        <p class="description">Select a date to view or edit attendance for the selected class.</p>
-                        <button class="btn btn-success" onclick="downloadHistoryCSV()">💾 Download History
-                            (CSV)</button>
-                        <button class="btn btn-info" onclick="downloadSubjectAttendanceReport()">📊 Download Subject
-                            Attendance Report</button>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Select Class:</label>
-                            <select id="historyClassSelect" onchange="loadAttendanceHistory()">
-                                <option value="">-- Select a class --</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Filter Date (Optional):</label>
-                            <input type="date" id="historyDateFilter" onchange="loadAttendanceHistory()">
-                        </div>
-                    </div>
-
-                    <div id="historyList"></div>
-                </div>
-
-                <!-- Report Tab -->
-                <div id="facultyReport" class="tab-content">
-                    <h2 class="section-title">📈 Year-wise Attendance Report</h2>
-                    <div class="year-filter" id="yearFilter"></div>
-                    <table id="yearWiseAttendanceTable">
-                        <thead>
-                            <tr>
-                                <th>Year</th>
-                                <th>Subject Details</th>
-                                <th style="text-align:center;">Total Students</th>
-                                <th style="text-align:center;">Classes Held</th>
-                                <th style="text-align:center;">Avg Strength</th>
-                                <th style="text-align:center;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="yearWiseAttendanceBody">
-                        </tbody>
-                    </table>
-                </div>
-                <div id="facultyMarks" class="tab-content">
-                    <h2 class="section-title">📝 Update Internal Marks</h2>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Select Class:</label>
-                            <select id="facultyMarksClassSelect" onchange="loadFacultyMarksTable()">
-                                <option value="">-- Select a class --</option>
-                            </select>
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid #eee;">
+                            <button class="btn btn-small btn-secondary" onclick="toggleExportCheckboxes(true)">Select
+                                All</button>
+                            <button class="btn btn-small btn-secondary" onclick="toggleExportCheckboxes(false)">Deselect
+                                All</button>
                         </div>
                     </div>
 
                     <div class="filter-container"
-                        style="background: #e8f4f8; border-left: 4px solid var(--color-info); padding: 20px;">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <div>
-                                <h4 style="margin: 0; color: var(--color-dark); font-size: 16px;">⚙️ Max Marks Structure
-                                </h4>
-                                <small style="color: #666;">Define the maximum scores for this subject.</small>
-                            </div>
-                            <button class="btn btn-primary btn-small" onclick="saveMaxMarksConfiguration()"
-                                title="Save these settings for this subject">
-                                💾 Save Structure
+                        style="background: #f8f9fa; border: 1px solid #ddd; padding: 25px; margin-top:20px;">
+                        <h3 style="margin-top:0;">2. Choose Export Format</h3>
+                        <div class="action-buttons" style="justify-content: flex-start; gap: 20px;">
+                            <button class="btn btn-primary" onclick="handleCustomExport('csv')">
+                                📥 Export as CSV (ZIP)
+                                <div style="font-size:11px; opacity:0.8;">Best for Excel / Reports</div>
+                            </button>
+
+                            <button class="btn btn-warning" onclick="handleCustomExport('json')">
+                                💾 Export as JSON (Backup)
+                                <div style="font-size:11px; opacity:0.8;">Best for Restore / Backup</div>
                             </button>
                         </div>
-
-                        <div class="form-row" style="margin-bottom: 0;">
-                            <div class="form-group">
-                                <label style="font-weight: bold;">Max Mid-Sem:</label>
-                                <input type="number" id="maxMidSem" value="20" min="0"
-                                    style="border: 2px solid #b3e5fc;" onchange="recalculateAllTotals()">
-                            </div>
-                            <div class="form-group">
-                                <label style="font-weight: bold;">Max Assignment:</label>
-                                <input type="number" id="maxAssign" value="10" min="0"
-                                    style="border: 2px solid #b3e5fc;" onchange="recalculateAllTotals()">
-                            </div>
-                            <div class="form-group">
-                                <label style="font-weight: bold;">Max Attendance:</label>
-                                <input type="number" id="maxAtt" value="10" min="0" style="border: 2px solid #b3e5fc;"
-                                    onchange="recalculateAllTotals()">
-                            </div>
-                        </div>
                     </div>
 
-                    <div id="marksEntryContainer" style="display:none; margin-top:20px;">
-                        <div class="action-buttons">
-                            <button class="btn btn-success" onclick="saveInternalMarks()">💾 Save All Marks</button>
+                    <div class="template-section"
+                        style="margin-top:30px; border-top:2px dashed #ddd; padding-top:20px;">
+                        <h3>📥 Download Import Templates</h3>
+                        <div class="template-buttons">
+                            <button class="btn btn-secondary" onclick="downloadTemplate('students')">Students
+                                CSV</button>
+                            <button class="btn btn-secondary" onclick="downloadTemplate('faculty')">Faculty CSV</button>
+                            <button class="btn btn-secondary" onclick="downloadTemplate('classes')">Classes CSV</button>
+                            <button class="btn btn-secondary" onclick="downloadTemplate('internal_marks')">Internal
+                                Marks CSV</button>
                         </div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Roll No</th>
-                                    <th>Name</th>
-                                    <th>Mid-Sem</th>
-                                    <th>Assignment</th>
-                                    <th>Attendance</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody id="facultyMarksBody">
-                            </tbody>
-                        </table>
                     </div>
                 </div>
+                <!-- Statistics -->
+                <div class="export-stats">
+                    <h3>📊 Export Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <h4>Students</h4>
+                            <div id="exportStudentCount" class="stat-number">0</div>
+                            <p>Total students available for export</p>
+                        </div>
+
+                        <div class="stat-item">
+                            <h4>Faculty</h4>
+                            <div id="exportFacultyCount" class="stat-number">0</div>
+                            <p>Total faculty available for export</p>
+                        </div>
+
+                        <div class="stat-item">
+                            <h4>Classes</h4>
+                            <div id="exportClassCount" class="stat-number">0</div>
+                            <p>Total classes available for export</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="adminSettings" class="tab-content">
+                <h2 class="section-title">⚙️ Settings</h2>
+                <form onsubmit="saveSettings(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>College Name:</label>
+                            <input type="text" id="collegeName" value="Government Engineering College Kaimur">
+                        </div>
+                        <div class="form-group">
+                            <label>Min Attendance (%):</label>
+                            <input type="number" id="minAttendance" value="75" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="submit" class="btn btn-success">💾 Save</button>
+                        <button type="button" class="btn btn-secondary" onclick="exportAllData()">📥 Export All
+                            Data</button>
+                        <button type="button" class="btn btn-danger" onclick="clearAllStudents()">🗑️ Clear All
+                            Students</button>
+                    </div>
+                </form>
             </div>
         </div>
+    </div>
 
-        <!-- STUDENT PANEL -->
-        <div id="studentPanel" class="panel">
-            <div class="section">
-                <h2 class="section-title">👤 Student Profile</h2>
-                <div class="profile-card">
-                    <div class="profile-info">
-                        <h3 id="studentNameDisplay">Student Name</h3>
-                        <p id="studentRollDisplay" class="roll-no">Roll No: -</p>
+    <!-- FACULTY PANEL -->
+    <div id="facultyPanel" class="panel">
+        <div class="section">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchFacultyTab('mark', event)">Mark
+                    Attendance</button>
+                <button class="tab-btn" onclick="switchFacultyTab('history', event)">Date-wise History</button>
+                <button class="tab-btn" onclick="switchFacultyTab('report', event)">Report</button>
+                <button class="tab-btn" onclick="switchFacultyTab('marks', event)">Internal Marks</button>
+            </div>
+
+            <!-- Mark Attendance Tab -->
+            <div id="facultyMark" class="tab-content active">
+                <h2 class="section-title">✅ Mark Attendance (Multi-Session Support)</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Select Class:</label>
+                        <select id="facultyClassSelect" onchange="loadClassStudents()">
+                            <option value="">-- Select a class --</option>
+                        </select>
                     </div>
-                    <div class="profile-details">
-                        <p><strong>Email:</strong> <span id="studentEmailDisplay">-</span></p>
-                        <p><strong>Department:</strong> <span id="studentDeptDisplay">-</span></p>
-                        <p><strong>Semester:</strong> <span id="studentSemDisplay">-</span></p>
-                        <p><strong>Year:</strong> <span id="studentYearDisplay">-</span></p>
+                    <div class="form-group">
+                        <label>Date:</label>
+                        <input type="date" id="attendanceDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Session:</label>
+                        <select id="attendanceSession">
+                            <option value="1">Session 1</option>
+                            <option value="2">Session 2</option>
+                            <option value="3">Session 3</option>
+                            <option value="4">Session 4</option>
+                            <option value="5">Session 5</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="openBulkAttendanceModal()">📂 Bulk
+                        Upload</button>
+                    <button class="btn btn-info" onclick="downloadAttendanceReport()">📥 Download Report
+                        (CSV)</button>
+                    <button class="btn btn-warning" id="multiSessionBtn" style="display:none;">📅 Mark Multiple
+                        Sessions</button>
+                </div>
+
+                <!-- Add Student/Batch to Session Logic -->
+                <div class="extra-students-section">
+                    <h4>➕ Add Extra Students (Electives/Backlogs)</h4>
+
+                    <div class="add-single-student">
+                        <input type="text" id="addStudentToSessionInput" placeholder="Enter Roll No (e.g. 22156...)">
+                        <button class="btn btn-info" onclick="addStudentToSession()">Add Single Student</button>
+                    </div>
+
+                    <div class="add-batch-section">
+                        <select id="addBatchBranch">
+                            <option value="">-- Select Branch --</option>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Civil">Civil</option>
+                            <option value="Mechanical">Mechanical</option>
+                            <option value="Electrical">Electrical</option>
+                            <option value="ECE">ECE</option>
+                            <option value="CSE(Cyber Security)">CSE(Cyber Security)</option>
+                            <option value="CSE(Networks)">CSE(Networks)</option>
+                            <option value="Applied Science">Applied Science</option>
+                        </select>
+                        <select id="addBatchSem">
+                            <option value="">-- Sem --</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                        </select>
+                        <button class="btn btn-warning" onclick="addBatchToSession()">Add Whole Batch</button>
+                    </div>
+                </div>
+
+                <div id="studentGridContainer" style="display:none;">
+                    <div id="studentGrid" class="student-grid"></div>
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="submitAttendance()">✔️ Submit Attendance for
+                            Session <span id="currentSessionDisplay">1</span></button>
+                        <button class="btn btn-secondary" onclick="resetAttendance()">🔄 Reset</button>
                     </div>
                 </div>
             </div>
 
-            <div class="section">
-                <h2 class="section-title">📚 My Attendance</h2>
-                <table id="studentAttendanceTable">
+            <!-- Date-wise History Tab -->
+            <div id="facultyHistory" class="tab-content">
+                <h2 class="section-title">📅 Attendance History (Multi-Session)</h2>
+                <div class="table-header">
+                    <p class="description">Select a date to view or edit attendance for the selected class.</p>
+                    <button class="btn btn-success" onclick="downloadHistoryCSV()">💾 Download History
+                        (CSV)</button>
+                    <button class="btn btn-info" onclick="downloadSubjectAttendanceReport()">📊 Download Subject
+                        Attendance Report</button>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Select Class:</label>
+                        <select id="historyClassSelect" onchange="loadAttendanceHistory()">
+                            <option value="">-- Select a class --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Filter Date (Optional):</label>
+                        <input type="date" id="historyDateFilter" onchange="loadAttendanceHistory()">
+                    </div>
+                </div>
+
+                <div id="historyList"></div>
+            </div>
+
+            <!-- Report Tab -->
+            <div id="facultyReport" class="tab-content">
+                <h2 class="section-title">📈 Year-wise Attendance Report</h2>
+                <div class="year-filter" id="yearFilter"></div>
+                <table id="yearWiseAttendanceTable">
                     <thead>
                         <tr>
-                            <th>Course</th>
-                            <th>Faculty</th>
-                            <th>Total Classes (Sessions)</th>
-                            <th>Attended</th>
-                            <th>Percentage</th>
-                            <th>Status</th>
+                            <th>Year</th>
+                            <th>Subject Details</th>
+                            <th style="text-align:center;">Total Students</th>
+                            <th style="text-align:center;">Classes Held</th>
+                            <th style="text-align:center;">Avg Strength</th>
+                            <th style="text-align:center;">Action</th>
                         </tr>
                     </thead>
-                    <tbody id="studentAttendanceBody">
-                        <tr>
-                            <td colspan="6" class="no-data">No attendance records found yet.</td>
-                        </tr>
+                    <tbody id="yearWiseAttendanceBody">
                     </tbody>
                 </table>
             </div>
+            <div id="facultyMarks" class="tab-content">
+                <h2 class="section-title">📝 Update Internal Marks</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Select Class:</label>
+                        <select id="facultyMarksClassSelect" onchange="loadFacultyMarksTable()">
+                            <option value="">-- Select a class --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-container"
+                    style="background: #e8f4f8; border-left: 4px solid var(--color-info); padding: 20px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div>
+                            <h4 style="margin: 0; color: var(--color-dark); font-size: 16px;">⚙️ Max Marks Structure
+                            </h4>
+                            <small style="color: #666;">Define the maximum scores for this subject.</small>
+                        </div>
+                        <button class="btn btn-primary btn-small" onclick="saveMaxMarksConfiguration()"
+                            title="Save these settings for this subject">
+                            💾 Save Structure
+                        </button>
+                    </div>
+
+                    <div class="form-row" style="margin-bottom: 0;">
+                        <div class="form-group">
+                            <label style="font-weight: bold;">Max Mid-Sem:</label>
+                            <input type="number" id="maxMidSem" value="20" min="0" style="border: 2px solid #b3e5fc;"
+                                onchange="recalculateAllTotals()">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight: bold;">Max Assignment:</label>
+                            <input type="number" id="maxAssign" value="10" min="0" style="border: 2px solid #b3e5fc;"
+                                onchange="recalculateAllTotals()">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight: bold;">Max Attendance:</label>
+                            <input type="number" id="maxAtt" value="10" min="0" style="border: 2px solid #b3e5fc;"
+                                onchange="recalculateAllTotals()">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="marksEntryContainer" style="display:none; margin-top:20px;">
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="saveInternalMarks()">💾 Save All Marks</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Roll No</th>
+                                <th>Name</th>
+                                <th>Mid-Sem</th>
+                                <th>Assignment</th>
+                                <th>Attendance</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="facultyMarksBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
+    </div>
+
+    <!-- STUDENT PANEL -->
+    <div id="studentPanel" class="panel">
+        <div class="section">
+            <h2 class="section-title">👤 Student Profile</h2>
+            <div class="profile-card">
+                <div class="profile-info">
+                    <h3 id="studentNameDisplay">Student Name</h3>
+                    <p id="studentRollDisplay" class="roll-no">Roll No: -</p>
+                </div>
+                <div class="profile-details">
+                    <p><strong>Email:</strong> <span id="studentEmailDisplay">-</span></p>
+                    <p><strong>Department:</strong> <span id="studentDeptDisplay">-</span></p>
+                    <p><strong>Semester:</strong> <span id="studentSemDisplay">-</span></p>
+                    <p><strong>Year:</strong> <span id="studentYearDisplay">-</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📚 My Attendance</h2>
+            <table id="studentAttendanceTable">
+                <thead>
+                    <tr>
+                        <th>Course</th>
+                        <th>Faculty</th>
+                        <th>Total Classes (Sessions)</th>
+                        <th>Attended</th>
+                        <th>Percentage</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="studentAttendanceBody">
+                    <tr>
+                        <td colspan="6" class="no-data">No attendance records found yet.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
     </div>
 
     <!-- ================ MODALS ================ -->
