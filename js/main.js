@@ -1,25 +1,25 @@
 document.getElementById("confirmActionBtn").onclick = async function () {
   const btn = this;
-  const originalText = btn.textContent;
+  const originalText = btn.innerText;
 
   if (pendingAction) {
     try {
-      // Show loading state on button
-      btn.textContent = "Processing...";
+      // 1. Show Loading State
+      btn.innerText = "Processing...";
       btn.disabled = true;
+      btn.style.opacity = "0.7";
 
-      // Await the action (Database updates)
+      // 2. Wait for the action to complete
       await pendingAction();
     } catch (error) {
-      console.error("Action failed:", error);
+      console.error("Action Error:", error);
       if (typeof showToast === "function")
         showToast("Action failed. Check console.", "error");
     } finally {
-      // Restore button state
-      btn.textContent = originalText;
+      // 3. Reset Button & Close Modal
+      btn.innerText = originalText;
       btn.disabled = false;
-
-      // Close modal and cleanup
+      btn.style.opacity = "1";
       closeModal("confirmationModal");
       pendingAction = null;
     }
