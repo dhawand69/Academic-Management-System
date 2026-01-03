@@ -435,22 +435,81 @@ function filterByBranch(branch) {
 }
 
 function promoteFilteredStudents() {
-  // A. Determine who to target
-  let targets = [];
-  if (selectedStudentIds && selectedStudentIds.size > 0) {
-    // Target only checked boxes
-    targets = displayedStudents.filter((s) => selectedStudentIds.has(s.id));
-  } else {
-    // Target everyone visible in the table
-    targets = displayedStudents || [];
-  }
+  // Get the currently filtered students directly from the table
+  const tableBody = document.getElementById("usersTableBody");
 
-  if (targets.length === 0) {
-    alert("No students found to promote."); // Using alert to be undeniable
+  // Check if there's a "no students" message
+  if (tableBody.innerHTML.includes("No students found")) {
+    showToast("No students to promote!", "warning");
     return;
   }
 
-  // B. Trigger Confirmation
+  // Get all student rows (excluding the header)
+  const studentRows = tableBody.querySelectorAll("tr");
+
+  // Check if we should use only selected checkboxes or all visible rows
+  const checkboxes = document.querySelectorAll(".student-checkbox:checked");
+  let targets = [];
+
+  if (checkboxes.length > 0) {
+    console.log(`[DEBUG] Using ${checkboxes.length} selected students`);
+
+    // Use only checked checkboxes
+    checkboxes.forEach((cb) => {
+      const studentId = parseInt(cb.value);
+      const row = cb.closest("tr");
+      if (row) {
+        const cells = row.querySelectorAll("td");
+        // Get semester from the 6th cell (index 5) which contains "Sem X"
+        const semesterCell = cells[5];
+        if (semesterCell) {
+          const semesterText = semesterCell.textContent.trim();
+          const semesterMatch = semesterText.match(/Sem\s*(\d+)/);
+          const semester = semesterMatch ? parseInt(semesterMatch[1]) : 1;
+          const year = Math.ceil(semester / 2);
+
+          targets.push({
+            id: studentId,
+            semester: semester,
+            year: year,
+          });
+        }
+      }
+    });
+  } else {
+    console.log(`[DEBUG] Using all ${studentRows.length} visible students`);
+
+    // Use all visible rows
+    studentRows.forEach((row) => {
+      const checkbox = row.querySelector(".student-checkbox");
+      if (checkbox) {
+        const studentId = parseInt(checkbox.value);
+        const cells = row.querySelectorAll("td");
+        const semesterCell = cells[5];
+        if (semesterCell) {
+          const semesterText = semesterCell.textContent.trim();
+          const semesterMatch = semesterText.match(/Sem\s*(\d+)/);
+          const semester = semesterMatch ? parseInt(semesterMatch[1]) : 1;
+          const year = Math.ceil(semester / 2);
+
+          targets.push({
+            id: studentId,
+            semester: semester,
+            year: year,
+          });
+        }
+      }
+    });
+  }
+
+  if (targets.length === 0) {
+    showToast("No students to promote!", "warning");
+    return;
+  }
+
+  console.log(`[DEBUG] Promoting ${targets.length} students`);
+
+  // Show confirmation dialog
   showConfirm(
     `Promote ${targets.length} students to the next Semester?`,
     async function () {
@@ -458,58 +517,86 @@ function promoteFilteredStudents() {
       let fail = 0;
 
       for (const student of targets) {
-        // C. Calculate New Values (Force Integers)
         const currentSem = parseInt(student.semester) || 0;
         let nextSem = currentSem + 1;
-
-        // Cap at 8 (or 9 for alumni)
         if (nextSem > 8) nextSem = 8;
-
-        // Auto-calculate year based on semester
-        // Sem 1-2 = Year 1, Sem 3-4 = Year 2, etc.
         const nextYear = Math.ceil(nextSem / 2);
 
-        // D. Construct Payload
-        const payload = {
-          id: parseInt(student.id),
+        console.log(
+          `[DEBUG] Updating student ${student.id}: Sem ${currentSem} → Sem ${nextSem}, Year ${nextYear}`
+        );
+
+        const result = await updateRecord("students", {
+          id: student.id,
           semester: nextSem,
           year: nextYear,
-        };
+        });
 
-        // E. Send Update
-        const result = await updateRecord("students", payload);
-        if (result) success++;
-        else fail++;
+        if (result) {
+          success++;
+          console.log(`[DEBUG] Successfully updated student ${student.id}`);
+        } else {
+          fail++;
+          console.log(`[DEBUG] Failed to update student ${student.id}`);
+        }
       }
 
-      // F. Final Report
       showToast(
         `Operation Complete: ${success} Updated, ${fail} Failed`,
         fail > 0 ? "warning" : "success"
       );
 
-      // Refresh UI
+      // Refresh the student list
       await loadStudents();
+
+      // Clear selections
       if (selectedStudentIds) selectedStudentIds.clear();
-      document.getElementById("masterCheckbox").checked = false;
+      const masterCheckbox = document.getElementById("masterCheckbox");
+      if (masterCheckbox) masterCheckbox.checked = false;
     }
   );
 }
 function setBulkSemester() {
   // A. Validation
   const dropdown = document.getElementById("bulkSemSelect");
-  if (!dropdown.value) {
+  if (!dropdown || !dropdown.value) {
     showToast("Please select a semester first.", "error");
     return;
   }
   const targetSem = parseInt(dropdown.value);
-
-  // B. Determine Targets
+  
+  // Get current table rows
+  const tableBody = document.getElementById("usersTableBody");
+  const studentRows = tableBody.querySelectorAll("tr");
+  
+  // Check for selected checkboxes
+  const checkboxes = document.querySelectorAll('.student-checkbox:checked');
   let targets = [];
-  if (selectedStudentIds && selectedStudentIds.size > 0) {
-    targets = displayedStudents.filter((s) => selectedStudentIds.has(s.id));
+  
+  if (checkboxes.length > 0) {
+    console.log(`[DEBUG] Using ${checkboxes.length} selected students for bulk update`);
+    
+    checkboxes.forEach(cb => {
+      const studentId = parseInt(cb.value);
+      const row = cb.closest('tr');
+      if (row) {
+        targets.push({
+          id: studentId
+        });
+      }
+    });
   } else {
-    targets = displayedStudents || [];
+    console.log(`[DEBUG] Using all ${studentRows.length} visible students for bulk update`);
+    
+    studentRows.forEach(row => {
+      const checkbox = row.querySelector('.student-checkbox');
+      if (checkbox) {
+        const studentId = parseInt(checkbox.value);
+        targets.push({
+          id: studentId
+        });
+      }
+    });
   }
 
   if (targets.length === 0) {
@@ -521,25 +608,20 @@ function setBulkSemester() {
   showConfirm(
     `Move ${targets.length} students directly to Semester ${targetSem}?`,
     async function () {
-      let success = 0;
+      let successCount = 0;
+      const targetYear = Math.ceil(targetSem / 2);
 
       for (const student of targets) {
-        // D. Construct Payload
-        const payload = {
-          id: parseInt(student.id),
+        const result = await updateRecord("students", {
+          id: student.id,
           semester: targetSem,
-          year: Math.ceil(targetSem / 2), // Auto-calc year
-        };
+          year: targetYear
+        });
 
-        // E. Send Update
-        const result = await updateRecord("students", payload);
-        if (result) success++;
+        if (result) successCount++;
       }
 
-      showToast(
-        `Updated ${success} students to Semester ${targetSem}`,
-        "success"
-      );
+      showToast(`Updated ${successCount} students to Semester ${targetSem}`, "success");
 
       await loadStudents();
       if (selectedStudentIds) selectedStudentIds.clear();
@@ -1446,4 +1528,31 @@ async function updateStudent(event) {
   showToast("Student details updated successfully!");
   closeModal("editUserModal");
   loadStudents(); // Refresh table
+}
+
+
+
+function debugPromote() {
+  console.log("=== DEBUG PROMOTE FUNCTION ===");
+  
+  // Check table
+  const tableBody = document.getElementById("usersTableBody");
+  console.log("Table body exists:", !!tableBody);
+  console.log("Table HTML (first 500 chars):", tableBody.innerHTML.substring(0, 500));
+  
+  // Check checkboxes
+  const checkboxes = document.querySelectorAll('.student-checkbox');
+  const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+  console.log("Total checkboxes:", checkboxes.length);
+  console.log("Checked checkboxes:", checkedBoxes.length);
+  
+  // Test extracting data from first row
+  const firstRow = tableBody.querySelector("tr");
+  if (firstRow) {
+    const cells = firstRow.querySelectorAll("td");
+    console.log("First row cells:", cells.length);
+    if (cells.length >= 6) {
+      console.log("Semester cell text:", cells[5].textContent);
+    }
+  }
 }
