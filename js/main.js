@@ -1,7 +1,31 @@
-document.getElementById("confirmActionBtn").onclick = function () {
-  if (pendingAction) pendingAction();
-  closeModal("confirmationModal");
-  pendingAction = null;
+document.getElementById("confirmActionBtn").onclick = async function () {
+  const btn = this;
+  const originalText = btn.textContent;
+
+  if (pendingAction) {
+    try {
+      // Show loading state on button
+      btn.textContent = "Processing...";
+      btn.disabled = true;
+
+      // Await the action (Database updates)
+      await pendingAction();
+    } catch (error) {
+      console.error("Action failed:", error);
+      if (typeof showToast === "function")
+        showToast("Action failed. Check console.", "error");
+    } finally {
+      // Restore button state
+      btn.textContent = originalText;
+      btn.disabled = false;
+
+      // Close modal and cleanup
+      closeModal("confirmationModal");
+      pendingAction = null;
+    }
+  } else {
+    closeModal("confirmationModal");
+  }
 };
 
 document.getElementById("attendanceDate").valueAsDate = new Date();
