@@ -2805,15 +2805,16 @@ async function deleteAdminAttendance() {
   }
 
   // --- STEP 3: SECURITY PROMPT ---
-  const confirmMsg = `⚠️ DANGER ZONE ⚠️\n\nYou are about to DELETE ${recordsToDelete.length} attendance records.\n\nFilters Applied:\n- Class ID: ${classId}\n- Date Mode: ${dateType}\n\nThis action CANNOT be undone.\n\nEnter ADMIN PASSWORD to confirm:`;
+// --- STEP 3: SECURITY PROMPT ---
+  const confirmMsg = `⚠️ DANGER ZONE ⚠️\n\nYou are about to DELETE ${recordsToDelete.length} attendance records.\n\nFilters Applied:\n- Class ID: ${classId}\n- Date Mode: ${dateType}\n\nThis action CANNOT be undone.\n\nType "DELETE" to confirm:`;
 
-  const password = prompt(confirmMsg);
+  const userInput = prompt(confirmMsg);
 
-  if (password === null) return; // User cancelled
+  if (userInput === null) return; // User cancelled
 
-  // Verify Password (ADMIN_PASSWORD from config.js)
-  if (password !== ADMIN_PASSWORD) {
-    showToast("❌ Incorrect Password! Action Denied.", "error");
+  // Verify Confirmation Text (Replaces ADMIN_PASSWORD check)
+  if (userInput !== "DELETE") {
+    showToast("❌ Confirmation failed! You must type 'DELETE' exactly.", "error");
     return;
   }
 
