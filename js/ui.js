@@ -1,3 +1,21 @@
+// ==========================================
+// GLOBAL VARIABLES FOR STUDENT MANAGEMENT
+// ==========================================
+let displayedStudents = []; // This will store the currently visible students
+let selectedStudentIds = new Set(); // Track selected students
+let pendingAction = null; // For confirmation modal
+let showArchivedClasses = false;
+let parsedBatchClasses = []; // For batch class import
+
+// Filter objects
+if (typeof activeClassFilter === "undefined") {
+  window.activeClassFilter = { year: "all", semester: null };
+}
+if (typeof activeStudentFilter === "undefined") {
+  window.activeStudentFilter = { year: "all", branch: "all", semester: null };
+}
+
+
 let showArchivedClasses = false;
 
 if (typeof activeClassFilter === "undefined") {
@@ -1431,3 +1449,4 @@ async function updateStudent(event) {
   closeModal("editUserModal");
   loadStudents(); // Refresh table
 }
+
