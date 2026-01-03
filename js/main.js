@@ -2,25 +2,6 @@
 // ==========================================
 // ASYNC MODAL HANDLER
 // ==========================================
-
-// ==========================================
-// GLOBAL VARIABLES (ADD THIS SECTION)
-// ==========================================
-let displayedStudents = []; // This will store the currently visible students
-let selectedStudentIds = new Set(); // Already exists in your code
-let pendingAction = null; // Already exists in your code
-
-// Also ensure these filter objects exist
-if (typeof activeStudentFilter === "undefined") {
-  window.activeStudentFilter = { year: "all", branch: "all", semester: null };
-}
-if (typeof activeClassFilter === "undefined") {
-  window.activeClassFilter = { year: "all", semester: null };
-}
-
-// ==========================================
-// CONFIRM MODAL HANDLER
-// ==========================================
 document.getElementById("confirmActionBtn").onclick = async function () {
   const btn = this;
   const originalText = btn.innerHTML;
@@ -51,9 +32,7 @@ document.getElementById("confirmActionBtn").onclick = async function () {
   }
 };
 
-// ==========================================
-// INITIALIZATION
-// ==========================================
+
 document.getElementById("attendanceDate").valueAsDate = new Date();
 
 (async () => {
@@ -144,39 +123,3 @@ document.getElementById("attendanceDate").valueAsDate = new Date();
     });
   }
 })();
-
-// ==========================================
-// DEBUG HELPER FUNCTION
-// ==========================================
-function debugStudentState() {
-  console.log("=== DEBUG STUDENT STATE ===");
-  console.log("displayedStudents length:", displayedStudents.length);
-  console.log("selectedStudentIds:", Array.from(selectedStudentIds));
-  console.log("activeStudentFilter:", activeStudentFilter);
-  
-  if (displayedStudents.length > 0) {
-    console.log("First 3 displayed students:", displayedStudents.slice(0, 3));
-  } else {
-    console.log("No displayed students found!");
-  }
-}
-
-// ==========================================
-// QUICK DEBUG LOGGER
-// ==========================================
-function logDisplayedStudents() {
-  console.log("displayedStudents:", displayedStudents);
-}
-
-
-
-function debugStudentState() {
-  console.log("=== DEBUG STUDENT STATE ===");
-  console.log("displayedStudents length:", displayedStudents.length);
-  console.log("selectedStudentIds:", Array.from(selectedStudentIds));
-  console.log("activeStudentFilter:", activeStudentFilter);
-  
-  if (displayedStudents.length > 0) {
-    console.log("First displayed student:", displayedStudents[0]);
-  }
-}
