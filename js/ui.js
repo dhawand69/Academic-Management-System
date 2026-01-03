@@ -287,7 +287,7 @@ async function loadStudents() {
 
   tbody.innerHTML = "";
 
-  const displayedStudents = allStudents.filter((student) => {
+  displayedStudents = allStudents.filter((student) => {
     const sem = parseInt(student.semester) || 1;
     const year = Math.ceil(sem / 2);
 
@@ -440,7 +440,7 @@ function promoteFilteredStudents() {
   // 1. Identify targets
   let targets = [];
   if (selectedStudentIds && selectedStudentIds.size > 0) {
-    targets = displayedStudents.filter(s => selectedStudentIds.has(s.id));
+    targets = displayedStudents.filter((s) => selectedStudentIds.has(s.id));
   } else {
     targets = displayedStudents || [];
   }
@@ -453,7 +453,7 @@ function promoteFilteredStudents() {
   // 2. Confirm
   showConfirm(
     `Promote ${targets.length} students to the next Semester?`,
-    async function() {
+    async function () {
       let successCount = 0;
       let failCount = 0;
 
@@ -469,17 +469,20 @@ function promoteFilteredStudents() {
         const result = await updateRecord("students", {
           id: student.id,
           semester: nextSem,
-          year: nextYear
+          year: nextYear,
         });
 
         if (result) successCount++;
         else failCount++;
       }
 
-      showToast(`Promoted: ${successCount}, Failed: ${failCount}`, failCount > 0 ? "warning" : "success");
-      
+      showToast(
+        `Promoted: ${successCount}, Failed: ${failCount}`,
+        failCount > 0 ? "warning" : "success"
+      );
+
       await loadStudents();
-      if(selectedStudentIds) selectedStudentIds.clear();
+      if (selectedStudentIds) selectedStudentIds.clear();
       document.getElementById("masterCheckbox").checked = false;
     }
   );
@@ -496,7 +499,7 @@ function setBulkSemester() {
   // Identify targets
   let targets = [];
   if (selectedStudentIds && selectedStudentIds.size > 0) {
-    targets = displayedStudents.filter(s => selectedStudentIds.has(s.id));
+    targets = displayedStudents.filter((s) => selectedStudentIds.has(s.id));
   } else {
     targets = displayedStudents || [];
   }
@@ -508,23 +511,26 @@ function setBulkSemester() {
 
   showConfirm(
     `Move ${targets.length} students to Semester ${targetSem}?`,
-    async function() {
+    async function () {
       let successCount = 0;
 
       for (const student of targets) {
         const result = await updateRecord("students", {
           id: student.id,
           semester: targetSem,
-          year: Math.ceil(targetSem / 2)
+          year: Math.ceil(targetSem / 2),
         });
 
         if (result) successCount++;
       }
 
-      showToast(`Updated ${successCount} students to Semester ${targetSem}`, "success");
-      
+      showToast(
+        `Updated ${successCount} students to Semester ${targetSem}`,
+        "success"
+      );
+
       await loadStudents();
-      if(selectedStudentIds) selectedStudentIds.clear();
+      if (selectedStudentIds) selectedStudentIds.clear();
       document.getElementById("masterCheckbox").checked = false;
     }
   );
@@ -1125,18 +1131,13 @@ function selectAllListed() {
 function getTargetStudents() {
   // Option A: Specific Checkboxes Selected
   if (selectedStudentIds && selectedStudentIds.size > 0) {
-    console.log(
-      `[DEBUG] Using ${selectedStudentIds.size} selected checkboxes.`
-    );
-    // displayedStudents must be available globally from config.js/main.js
+    console.log(`[DEBUG] Using ${selectedStudentIds.size} selected checkboxes.`);
     return displayedStudents.filter((s) => selectedStudentIds.has(s.id));
   }
 
   // Option B: Apply to All Currently Visible
-  console.log(
-    `[DEBUG] Using all ${displayedStudents.length} displayed students.`
-  );
-  return displayedStudents;
+  console.log(`[DEBUG] Using all ${displayedStudents.length} displayed students.`);
+  return displayedStudents || [];
 }
 
 function filterClasses(year) {
