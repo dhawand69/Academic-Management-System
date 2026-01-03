@@ -241,8 +241,11 @@ function switchFacultyTab(tab, event) {
   } else if (tab === "report") {
     generateYearlyReport();
   } else if (tab === "mark") {
-    // FIX: Ensure button is added when switching to Mark tab
     addMultiSessionButton();
+  } else if (tab === "marks") {
+    // NEW LOGIC FOR INTERNAL MARKS
+    if (typeof populateFacultyMarksDropdown === "function")
+      populateFacultyMarksDropdown();
   }
 }
 
