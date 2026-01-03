@@ -1,21 +1,3 @@
-// ==========================================
-// GLOBAL VARIABLES FOR STUDENT MANAGEMENT
-// ==========================================
-let displayedStudents = []; // This will store the currently visible students
-let selectedStudentIds = new Set(); // Track selected students
-let pendingAction = null; // For confirmation modal
-let showArchivedClasses = false;
-let parsedBatchClasses = []; // For batch class import
-
-// Filter objects
-if (typeof activeClassFilter === "undefined") {
-  window.activeClassFilter = { year: "all", semester: null };
-}
-if (typeof activeStudentFilter === "undefined") {
-  window.activeStudentFilter = { year: "all", branch: "all", semester: null };
-}
-
-
 let showArchivedClasses = false;
 
 if (typeof activeClassFilter === "undefined") {
@@ -305,7 +287,7 @@ async function loadStudents() {
 
   tbody.innerHTML = "";
 
-  displayedStudents = allStudents.filter((student) => {
+  const displayedStudents = allStudents.filter((student) => {
     const sem = parseInt(student.semester) || 1;
     const year = Math.ceil(sem / 2);
 
@@ -452,69 +434,77 @@ function filterByBranch(branch) {
   loadStudents();
 }
 
-// ➤ ADD THESE FUNCTIONS TO FIX THE "PROMOTE" BUTTON ERROR
-
 function promoteFilteredStudents() {
-  // 1. Identify targets
+  // A. Determine who to target
   let targets = [];
   if (selectedStudentIds && selectedStudentIds.size > 0) {
+    // Target only checked boxes
     targets = displayedStudents.filter((s) => selectedStudentIds.has(s.id));
   } else {
+    // Target everyone visible in the table
     targets = displayedStudents || [];
   }
 
   if (targets.length === 0) {
-    showToast("No students to promote!", "warning");
+    alert("No students found to promote."); // Using alert to be undeniable
     return;
   }
 
-  // 2. Confirm
+  // B. Trigger Confirmation
   showConfirm(
     `Promote ${targets.length} students to the next Semester?`,
     async function () {
-      let successCount = 0;
-      let failCount = 0;
+      let success = 0;
+      let fail = 0;
 
       for (const student of targets) {
-        // Force conversion to numbers
-        let currentSem = parseInt(student.semester);
-        if (isNaN(currentSem)) currentSem = 0;
-
+        // C. Calculate New Values (Force Integers)
+        const currentSem = parseInt(student.semester) || 0;
         let nextSem = currentSem + 1;
-        if (nextSem > 8) nextSem = 8; // Cap at 8
+
+        // Cap at 8 (or 9 for alumni)
+        if (nextSem > 8) nextSem = 8;
+
+        // Auto-calculate year based on semester
+        // Sem 1-2 = Year 1, Sem 3-4 = Year 2, etc.
         const nextYear = Math.ceil(nextSem / 2);
 
-        const result = await updateRecord("students", {
-          id: student.id,
+        // D. Construct Payload
+        const payload = {
+          id: parseInt(student.id),
           semester: nextSem,
           year: nextYear,
-        });
+        };
 
-        if (result) successCount++;
-        else failCount++;
+        // E. Send Update
+        const result = await updateRecord("students", payload);
+        if (result) success++;
+        else fail++;
       }
 
+      // F. Final Report
       showToast(
-        `Promoted: ${successCount}, Failed: ${failCount}`,
-        failCount > 0 ? "warning" : "success"
+        `Operation Complete: ${success} Updated, ${fail} Failed`,
+        fail > 0 ? "warning" : "success"
       );
 
+      // Refresh UI
       await loadStudents();
       if (selectedStudentIds) selectedStudentIds.clear();
       document.getElementById("masterCheckbox").checked = false;
     }
   );
 }
-
 function setBulkSemester() {
+  // A. Validation
   const dropdown = document.getElementById("bulkSemSelect");
-  if (!dropdown || !dropdown.value) {
+  if (!dropdown.value) {
     showToast("Please select a semester first.", "error");
     return;
   }
   const targetSem = parseInt(dropdown.value);
 
-  // Identify targets
+  // B. Determine Targets
   let targets = [];
   if (selectedStudentIds && selectedStudentIds.size > 0) {
     targets = displayedStudents.filter((s) => selectedStudentIds.has(s.id));
@@ -523,27 +513,31 @@ function setBulkSemester() {
   }
 
   if (targets.length === 0) {
-    showToast("No students selected to update.", "warning");
+    showToast("No students selected.", "warning");
     return;
   }
 
+  // C. Trigger Confirmation
   showConfirm(
-    `Move ${targets.length} students to Semester ${targetSem}?`,
+    `Move ${targets.length} students directly to Semester ${targetSem}?`,
     async function () {
-      let successCount = 0;
+      let success = 0;
 
       for (const student of targets) {
-        const result = await updateRecord("students", {
-          id: student.id,
+        // D. Construct Payload
+        const payload = {
+          id: parseInt(student.id),
           semester: targetSem,
-          year: Math.ceil(targetSem / 2),
-        });
+          year: Math.ceil(targetSem / 2), // Auto-calc year
+        };
 
-        if (result) successCount++;
+        // E. Send Update
+        const result = await updateRecord("students", payload);
+        if (result) success++;
       }
 
       showToast(
-        `Updated ${successCount} students to Semester ${targetSem}`,
+        `Updated ${success} students to Semester ${targetSem}`,
         "success"
       );
 
@@ -553,7 +547,6 @@ function setBulkSemester() {
     }
   );
 }
-
 function deleteFilteredStudents() {
   const targets = getTargetStudents();
   if (targets.length === 0) {
@@ -1149,13 +1142,18 @@ function selectAllListed() {
 function getTargetStudents() {
   // Option A: Specific Checkboxes Selected
   if (selectedStudentIds && selectedStudentIds.size > 0) {
-    console.log(`[DEBUG] Using ${selectedStudentIds.size} selected checkboxes.`);
+    console.log(
+      `[DEBUG] Using ${selectedStudentIds.size} selected checkboxes.`
+    );
+    // displayedStudents must be available globally from config.js/main.js
     return displayedStudents.filter((s) => selectedStudentIds.has(s.id));
   }
 
   // Option B: Apply to All Currently Visible
-  console.log(`[DEBUG] Using all ${displayedStudents.length} displayed students.`);
-  return displayedStudents || [];
+  console.log(
+    `[DEBUG] Using all ${displayedStudents.length} displayed students.`
+  );
+  return displayedStudents;
 }
 
 function filterClasses(year) {
@@ -1449,4 +1447,3 @@ async function updateStudent(event) {
   closeModal("editUserModal");
   loadStudents(); // Refresh table
 }
-
