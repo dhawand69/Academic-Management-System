@@ -1,50 +1,90 @@
 // auth.js - Login and Authentication Logic
 // CORRECTED FOR LOWERCASE DATABASE COLUMNS
+// UPDATED WITH SECURE ADMIN LOGIN (Supabase Auth)
 
+// Switch Tabs (UI Only)
 function switchLoginTab(role) {
-  document
-    .querySelectorAll(".login-tab")
-    .forEach((t) => t.classList.remove("active"));
-  document
-    .querySelector(`.login-tab[data-role="${role}"]`)
-    .classList.add("active");
-  document
-    .querySelectorAll(".login-form")
-    .forEach((f) => f.classList.remove("active"));
+  document.querySelectorAll(".login-tab").forEach((t) => t.classList.remove("active"));
+  document.querySelector(`.login-tab[data-role="${role}"]`).classList.add("active");
+  document.querySelectorAll(".login-form").forEach((f) => f.classList.remove("active"));
   document.getElementById(role + "LoginForm").classList.add("active");
+  
+  // Clear error messages
   document.querySelectorAll(".alert-error").forEach((e) => {
     e.style.display = "none";
     e.textContent = "";
   });
 }
 
+// ==========================================
+// 1. SECURE ADMIN LOGIN (Supabase Auth) - REPLACED FROM CODE 2
+// ==========================================
 async function handleAdminLogin(event) {
   event.preventDefault();
+  
+  const email = document.getElementById("adminEmail").value;
   const password = document.getElementById("adminPassword").value;
   const errorDiv = document.getElementById("adminLoginError");
-  if (password === ADMIN_PASSWORD) {
-    completeLogin("admin", { name: "Admin User" });
-  } else {
-    errorDiv.textContent = "❌ Incorrect Admin Password";
+
+  // UI Feedback
+  const btn = event.target.querySelector("button");
+  const originalText = btn.textContent;
+  btn.textContent = "Verifying...";
+  btn.disabled = true;
+
+  try {
+    // Authenticate with Supabase Auth
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+
+    if (error) throw error;
+
+    console.log("✅ Admin Secure Login Success");
+    
+    // Log user in app
+    completeLogin("admin", { 
+        name: "Admin User", 
+        email: data.user.email,
+        id: data.user.id 
+    });
+
+  } catch (err) {
+    console.error("Login Failed:", err.message);
+    errorDiv.textContent = "❌ Login failed: " + err.message;
     errorDiv.style.display = "block";
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
   }
 }
 
+// ==========================================
+// 2. FACULTY LOGIN (Database Check) - UPDATED FROM CODE 2
+// ==========================================
 async function handleFacultyLogin(event) {
   event.preventDefault();
   const id = document.getElementById("loginFacultyId").value;
   const password = document.getElementById("loginFacultyPassword").value;
   const errorDiv = document.getElementById("facultyLoginError");
 
-  const allFaculty = await getAll("faculty");
-
   // FIX: Using lowercase 'facultyid'
+  const allFaculty = await getAll("faculty");
   const facultyMember = allFaculty.find((f) => f.facultyid === id);
 
   if (facultyMember) {
     const storedPassword = facultyMember.password || "password123";
     if (password === storedPassword) {
-      completeLogin("faculty", facultyMember);
+      completeLogin("faculty", {
+        id: facultyMember.id,
+        facultyid: facultyMember.facultyid,
+        firstname: facultyMember.firstname,
+        lastname: facultyMember.lastname,
+        role: "faculty",
+        email: facultyMember.email,
+        department: facultyMember.department
+      });
     } else {
       errorDiv.textContent = "❌ Incorrect Password";
       errorDiv.style.display = "block";
@@ -55,69 +95,112 @@ async function handleFacultyLogin(event) {
   }
 }
 
+// ==========================================
+// 3. STUDENT LOGIN (Database Check) - UPDATED FROM CODE 2
+// ==========================================
 async function handleStudentLogin(event) {
   event.preventDefault();
   const rollNo = document.getElementById("loginStudentId").value;
   const errorDiv = document.getElementById("studentLoginError");
 
-  const allStudents = await getAll("students");
-
   // FIX: Using lowercase 'rollno'
+  const allStudents = await getAll("students");
   const student = allStudents.find((s) => s.rollno === rollNo);
 
   if (student) {
-    completeLogin("student", student);
+    completeLogin("student", {
+      id: student.id,
+      rollno: student.rollno,
+      firstname: student.firstname,
+      lastname: student.lastname,
+      department: student.department,
+      semester: student.semester,
+      role: "student"
+    });
   } else {
     errorDiv.textContent = "❌ Student Roll No not found";
     errorDiv.style.display = "block";
   }
 }
 
+// ==========================================
+// COMPLETE LOGIN FUNCTION - MERGED FROM BOTH CODES
+// ==========================================
 function completeLogin(role, userData) {
-  currentUser = { role, ...userData };
+  currentUser = { ...userData, role: role };
+  
+  // Save to Local Storage
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+  localStorage.setItem("loginTime", Date.now().toString());
+
+  // Update UI
   document.getElementById("loginOverlay").style.display = "none";
   document.getElementById("mainContainer").style.display = "block";
 
-  // FIX: Using lowercase 'firstname' and 'lastname'
-  const name =
-    role === "admin"
-      ? "Admin User"
-      : `${userData.firstname} ${userData.lastname}`;
+  // FIX: Using lowercase 'firstname' and 'lastname' for display
+  const name = role === "admin" 
+    ? "Admin User" 
+    : `${userData.firstname || userData.firstName || ""} ${userData.lastname || userData.lastName || ""}`.trim();
 
-  document.getElementById("loggedInUser").textContent = name;
-  document.getElementById("roleBadge").textContent = role.toUpperCase();
+  // Update header
+  const nameDisplay = document.getElementById("loggedInUser") || document.getElementById("userInfoName");
+  const roleDisplay = document.getElementById("roleBadge") || document.getElementById("userInfoRole");
+  
+  if (nameDisplay) nameDisplay.textContent = name;
+  if (roleDisplay) roleDisplay.textContent = role.toUpperCase();
 
-  document
-    .querySelectorAll(".panel")
-    .forEach((p) => p.classList.remove("active"));
-
+  // Show/hide password change button
   const passwordChangeBtn = document.getElementById("passwordChangeBtn");
   if (role === "admin" || role === "faculty") {
     passwordChangeBtn.style.display = "inline-block";
   } else {
     passwordChangeBtn.style.display = "none";
   }
+
+  // Activate correct panel
+  document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
   document.getElementById(role + "Panel").classList.add("active");
 
+  // Load role-specific data
   if (role === "faculty") {
-    populateFacultyClassDropdown();
+    if (typeof populateFacultyClassDropdown === "function") populateFacultyClassDropdown();
     setTimeout(addMultiSessionButton, 500);
   } else if (role === "student") {
-    populateStudentDashboard(userData);
+    if (typeof populateStudentDashboard === "function") populateStudentDashboard(userData);
   } else if (role === "admin") {
-    populateFacultyClassDropdown();
-    populateAdminClassFilter("all", "all");
+    if (typeof populateFacultyClassDropdown === "function") populateFacultyClassDropdown();
+    if (typeof populateAdminClassFilter === "function") populateAdminClassFilter("all", "all");
+    if (typeof updateDashboard === "function") updateDashboard();
   }
 
+  // Clear form fields
   document.getElementById("adminPassword").value = "";
+  document.getElementById("adminEmail") && (document.getElementById("adminEmail").value = "");
   document.getElementById("loginFacultyId").value = "";
   document.getElementById("loginFacultyPassword").value = "";
   document.getElementById("loginStudentId").value = "";
+
+  showToast(`Welcome, ${name}!`, "success");
 }
 
-function handleLogout() {
-  showConfirm("Are you sure you want to logout?", function () {
+// ==========================================
+// HANDLE LOGOUT - UPDATED FROM CODE 2
+// ==========================================
+async function handleLogout() {
+  showConfirm("Are you sure you want to logout?", async function () {
+    // Sign out from Supabase if it's an Admin
+    if (currentUser && currentUser.role === 'admin') {
+      try {
+        await supabaseClient.auth.signOut();
+      } catch (error) {
+        console.error("Supabase sign out error:", error);
+      }
+    }
+
     currentUser = null;
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("loginTime");
+    
     document.getElementById("facultyClassSelect").innerHTML =
       '<option value="">-- Select a class --</option>';
     document.getElementById("studentGrid").innerHTML = "";
@@ -125,11 +208,137 @@ function handleLogout() {
 
     document.getElementById("loginOverlay").style.display = "flex";
     document.getElementById("mainContainer").style.display = "none";
+    
     showToast("Logged out successfully", "info");
   });
 }
 
-// Password Change Functions
+// ==========================================
+// SESSION MANAGEMENT - UPDATED FROM CODE 2
+// ==========================================
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 Minutes in milliseconds
+
+async function checkSession() {
+  const storedUser = localStorage.getItem("currentUser");
+  const loginTime = localStorage.getItem("loginTime");
+
+  if (storedUser && loginTime) {
+    const now = Date.now();
+    const timeElapsed = now - parseInt(loginTime);
+
+    // Check for timeout
+    if (timeElapsed > SESSION_TIMEOUT) {
+      console.log("Session expired.");
+      await handleLogout();
+      showToast("Session expired. Please log in again.", "warning");
+      return;
+    }
+
+    const user = JSON.parse(storedUser);
+    
+    // Security check for Admin only
+    if (user.role === 'admin') {
+      try {
+        const { data } = await supabaseClient.auth.getSession();
+        if (!data.session) {
+          console.log("Admin session expired.");
+          await handleLogout();
+          showToast("Admin session expired. Please log in again.", "warning");
+          return;
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+        await handleLogout();
+        return;
+      }
+    }
+    
+    // Refresh the timestamp to keep session alive while active
+    localStorage.setItem("loginTime", now.toString());
+
+    // Restore session
+    currentUser = user;
+    console.log("Restoring session for:", currentUser.role);
+
+    // Re-initialize UI based on role
+    updateUIForRole(currentUser.role);
+  }
+}
+
+// ==========================================
+// HELPER: UPDATE UI FOR ROLE - FROM CODE 1
+// ==========================================
+function updateUIForRole(role) {
+  console.log("Initializing UI for role:", role);
+
+  // 1. SELECTORS
+  const loginSection =
+    document.getElementById("loginOverlay") ||
+    document.querySelector(".login-wrapper");
+  const mainContainer = document.querySelector(".container");
+
+  // Header Elements (Try ID first, then fallback to structure)
+  let nameDisplay = document.getElementById("userInfoName") || document.getElementById("loggedInUser");
+  let roleDisplay = document.getElementById("userInfoRole") || document.getElementById("roleBadge");
+
+  // Fallback: If IDs are missing, try to find them by class/structure
+  if (!nameDisplay) {
+    const userInfoDiv = document.querySelector(".user-info");
+    if (userInfoDiv) {
+      nameDisplay = userInfoDiv.querySelector("div:first-child");
+      roleDisplay = userInfoDiv.querySelector(".user-role-badge");
+    }
+  }
+
+  // 2. TOGGLE VIEWS
+  if (loginSection) loginSection.style.display = "none";
+  if (mainContainer) mainContainer.style.display = "block";
+
+  // 3. UPDATE HEADER TEXT
+  if (nameDisplay && roleDisplay) {
+    if (role === "admin") {
+      nameDisplay.textContent = "Administrator";
+      roleDisplay.textContent = "ADMIN";
+    } else {
+      // Get name safely
+      const fName = currentUser.firstname || currentUser.firstName || "User";
+      const lName = currentUser.lastname || currentUser.lastName || "";
+
+      nameDisplay.textContent = `${fName} ${lName}`.trim();
+      roleDisplay.textContent = role.toUpperCase();
+    }
+  } else {
+    console.warn(
+      "⚠️ Header elements not found. Please add id='userInfoName' to the name div in HTML."
+    );
+  }
+
+  // 4. ACTIVATE PANEL
+  document
+    .querySelectorAll(".panel")
+    .forEach((p) => p.classList.remove("active"));
+  const panelId = `${role}Panel`;
+  const targetPanel = document.getElementById(panelId);
+
+  if (targetPanel) {
+    targetPanel.classList.add("active");
+  }
+
+  // 5. LOAD DATA
+  if (role === "admin" && typeof updateDashboard === "function")
+    updateDashboard();
+  else if (
+    role === "faculty" &&
+    typeof populateFacultyClassDropdown === "function"
+  )
+    populateFacultyClassDropdown();
+  else if (role === "student" && typeof populateStudentDashboard === "function")
+    populateStudentDashboard(currentUser);
+}
+
+// ==========================================
+// PASSWORD CHANGE FUNCTIONS - FROM CODE 1 (UNCHANGED)
+// ==========================================
 function openPasswordChangeModal() {
   document.getElementById("currentPassword").value = "";
   document.getElementById("newPassword").value = "";
@@ -218,11 +427,8 @@ async function handlePasswordChange(event) {
 
   try {
     if (currentUser.role === "admin") {
-      if (currentPassword !== ADMIN_PASSWORD) {
-        showError("Current admin password is incorrect");
-        return;
-      }
-      showError("Admin password change requires server-side implementation");
+      // For admin, we need to use Supabase Auth to change password
+      showError("Admin password change requires Supabase Auth implementation");
       return;
     } else if (currentUser.role === "faculty") {
       const allFaculty = await getAll("faculty");
@@ -330,42 +536,8 @@ async function resetFacultyPassword() {
 }
 
 // =============================================
-// AUTHENTICATION MODULE (Fixed: Session Persistence)
+// UNIVERSAL LOGIN HANDLERS - FROM CODE 1 (KEPT FOR COMPATIBILITY)
 // =============================================
-
-const SESSION_TIMEOUT = 3 * 60 * 1000; // 30 Minutes in milliseconds
-
-// Check if user is already logged in (Run on page load)
-async function checkSession() {
-  const storedUser = localStorage.getItem("currentUser");
-  const loginTime = localStorage.getItem("loginTime");
-
-  if (storedUser && loginTime) {
-    const now = Date.now();
-    const timeElapsed = now - parseInt(loginTime);
-
-    // Check for timeout
-    if (timeElapsed > SESSION_TIMEOUT) {
-      console.log("Session expired.");
-      handleLogout(); // Auto logout
-      showToast("Session expired. Please log in again.", "warning");
-    } else {
-      // Restore session
-      currentUser = JSON.parse(storedUser);
-      console.log("Restoring session for:", currentUser.role);
-
-      // Refresh the timestamp to keep session alive while active
-      localStorage.setItem("loginTime", now.toString());
-
-      // Re-initialize UI based on role
-      updateUIForRole(currentUser.role);
-    }
-  }
-}
-
-// Handle Login (Admin, Faculty, Student)
-// Handle Login (Fixed: Checks multiple common IDs to prevent crashes)
-// Handle Login (Fixed: Finds inputs automatically inside the form)
 async function handleLogin(event, role) {
   event.preventDefault();
 
@@ -374,21 +546,8 @@ async function handleLogin(event, role) {
   console.log(`Processing ${role} login...`);
 
   if (role === "admin") {
-    const passwordField = form.querySelector('input[type="password"]');
-    if (!passwordField) {
-      showToast("Error: Password field not found", "error");
-      return;
-    }
-
-    if (passwordField.value === ADMIN_PASSWORD) {
-      completeLogin("admin", {
-        role: "admin",
-        firstname: "Admin",
-        lastname: "User",
-      });
-    } else {
-      showToast("Invalid Admin Password", "error");
-    }
+    // Use the new secure admin login
+    await handleAdminLogin(event);
   } else if (role === "faculty") {
     // Find the first text input (ID) and first password input
     const idInput =
@@ -405,10 +564,9 @@ async function handleLogin(event, role) {
       return;
     }
 
-    const enteredId = idInput.value.trim(); // Removes accidental spaces
+    const enteredId = idInput.value.trim();
     const enteredPass = passInput.value.trim();
 
-    // Debugging: Show what we are looking for (Check Console F12)
     console.log(`Checking DB for Faculty ID: "${enteredId}"`);
 
     const allFaculty = await getAll("faculty");
@@ -462,134 +620,24 @@ async function handleLogin(event, role) {
   }
 }
 
-// Complete Login & Save to Storage
-function completeLogin(role, userData) {
-  currentUser = { ...userData, role: role };
-
-  // 1. Save to Local Storage
-  localStorage.setItem("currentUser", JSON.stringify(currentUser));
-  localStorage.setItem("loginTime", Date.now().toString());
-
-  updateUIForRole(role);
-  showToast(`Welcome, ${currentUser.firstname || "User"}!`, "success");
-}
-
-// Helper: Updates UI based on Role
-// Helper: Updates UI based on Role (Fixed: Prevents Crashes)
-// Helper: Updates UI based on Role (Fixed: Robust Selector)
-// Helper: Updates UI based on Role (Fixed: Correct Header Name Display)
-// Helper: Updates UI based on Role (Fixed: Robust Name Update)
-function updateUIForRole(role) {
-  console.log("Initializing UI for role:", role);
-
-  // 1. SELECTORS
-  const loginSection =
-    document.getElementById("loginOverlay") ||
-    document.querySelector(".login-wrapper");
-  const mainContainer = document.querySelector(".container");
-
-  // Header Elements (Try ID first, then fallback to structure)
-  let nameDisplay = document.getElementById("userInfoName");
-  let roleDisplay = document.getElementById("userInfoRole");
-
-  // Fallback: If IDs are missing, try to find them by class/structure
-  if (!nameDisplay) {
-    const userInfoDiv = document.querySelector(".user-info");
-    if (userInfoDiv) {
-      nameDisplay = userInfoDiv.querySelector("div:first-child"); // Assumes name is first div
-      roleDisplay = userInfoDiv.querySelector(".user-role-badge");
-    }
-  }
-
-  // 2. TOGGLE VIEWS
-  if (loginSection) loginSection.style.display = "none";
-  if (mainContainer) mainContainer.style.display = "block";
-
-  // 3. UPDATE HEADER TEXT
-  if (nameDisplay && roleDisplay) {
-    if (role === "admin") {
-      nameDisplay.textContent = "Administrator";
-      roleDisplay.textContent = "ADMIN";
-    } else {
-      // Get name safely
-      const fName = currentUser.firstname || currentUser.firstName || "User";
-      const lName = currentUser.lastname || currentUser.lastName || "";
-
-      nameDisplay.textContent = `${fName} ${lName}`.trim();
-      roleDisplay.textContent = role.toUpperCase();
-    }
-  } else {
-    console.warn(
-      "⚠️ Header elements not found. Please add id='userInfoName' to the name div in HTML."
-    );
-  }
-
-  // 4. ACTIVATE PANEL
-  document
-    .querySelectorAll(".panel")
-    .forEach((p) => p.classList.remove("active"));
-  const panelId = `${role}Panel`;
-  const targetPanel = document.getElementById(panelId);
-
-  if (targetPanel) {
-    targetPanel.classList.add("active");
-  }
-
-  // 5. LOAD DATA
-  if (role === "admin" && typeof updateDashboard === "function")
-    updateDashboard();
-  else if (
-    role === "faculty" &&
-    typeof populateFacultyClassDropdown === "function"
-  )
-    populateFacultyClassDropdown();
-  else if (role === "student" && typeof populateStudentDashboard === "function")
-    populateStudentDashboard(currentUser);
-}
-
-// Handle Logout
-// Handle Logout (Fixed: Safety Checks)
-function handleLogout() {
-  currentUser = null;
-
-  // Clear Local Storage
-  localStorage.removeItem("currentUser");
-  localStorage.removeItem("loginTime");
-
-  // 1. Reset UI - Find elements robustly
-  const loginSection =
-    document.getElementById("loginSection") ||
-    document.querySelector(".login-wrapper");
-  const mainContainer = document.querySelector(".container");
-
-  if (mainContainer) {
-    mainContainer.style.display = "none";
-  }
-
-  if (loginSection) {
-    // Restore login screen style
-    loginSection.style.display = "flex";
-  } else {
-    console.error("Logout Error: Cannot find Login Screen to restore.");
-    // Fallback: Reload page to force login screen
-    window.location.reload();
-    return;
-  }
-
-  // Reset Forms
-  document.querySelectorAll("form").forEach((f) => f.reset());
-
-  showToast("Logged out successfully", "info");
-}
-
-// Initialize Session Check on Load
+// =============================================
+// INITIALIZE SESSION CHECK ON LOAD
+// =============================================
 document.addEventListener("DOMContentLoaded", () => {
   // Wait slightly for DB to init, then check session
   setTimeout(checkSession, 500);
 });
 
-// Expose functions to global scope for HTML onclick events
-window.handleAdminLogin = (e) => handleLogin(e, "admin");
-window.handleFacultyLogin = (e) => handleLogin(e, "faculty");
-window.handleStudentLogin = (e) => handleLogin(e, "student");
+// =============================================
+// EXPOSE FUNCTIONS TO GLOBAL SCOPE
+// =============================================
+window.handleAdminLogin = handleAdminLogin;
+window.handleFacultyLogin = handleFacultyLogin;
+window.handleStudentLogin = handleStudentLogin;
+window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
+window.switchLoginTab = switchLoginTab;
+window.openPasswordChangeModal = openPasswordChangeModal;
+window.handlePasswordChange = handlePasswordChange;
+window.openFacultyPasswordResetModal = openFacultyPasswordResetModal;
+window.resetFacultyPassword = resetFacultyPassword;
