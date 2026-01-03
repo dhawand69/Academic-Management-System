@@ -89,67 +89,48 @@ async function getRecord(table, id) {
 
 // js/database.js - Robust Update Function
 
+// ==========================================
+// DIRECT UPDATE FUNCTION (No fancy filtering)
+// ==========================================
 async function updateRecord(table, data) {
   try {
-    // 1. Validate ID
-    if (!data.id) {
-      console.error(
-        `❌ updateRecord Error: Missing 'id' for table ${table}`,
-        data
-      );
-      showToast("System Error: Cannot update record without ID.", "error");
+    // 1. Extract ID securely
+    const id = data.id;
+    if (!id) {
+      console.error("❌ CRITICAL: No ID provided for update:", data);
       return null;
     }
 
-    const id = parseInt(data.id); // Force Integer
-    if (isNaN(id)) {
-      console.error("❌ Invalid ID format:", data.id);
-      return null;
-    }
+    // 2. Prepare Payload (Remove ID from the update body)
+    const payload = { ...data };
+    delete payload.id; // We don't update the ID column itself
 
-    // 2. Get Valid Columns & Sanitize
-    const validColumns = getValidColumns(table); // Ensure this function exists in database.js
-    const cleanedData = {};
+    // Always update timestamp
+    payload.updatedat = new Date().toISOString();
 
-    validColumns.forEach((column) => {
-      if (column === "id") return; // Don't update the primary key
+    console.log(`[EXEC] Updating ${table} (ID: ${id}) with:`, payload);
 
-      // Find matching key (Case-Insensitive)
-      const sourceKey = Object.keys(data).find(
-        (key) => key.toLowerCase() === column.toLowerCase()
-      );
-
-      if (sourceKey && data[sourceKey] !== undefined) {
-        cleanedData[column] = data[sourceKey];
-      }
-    });
-
-    // 3. Add Timestamp
-    cleanedData.updatedat = new Date().toISOString();
-
-    console.log(`[DEBUG] Updating ${table} ID: ${id}`, cleanedData);
-
-    // 4. Send to Supabase
+    // 3. Direct Supabase Call
     const { data: result, error } = await supabaseClient
       .from(table)
-      .update(cleanedData)
+      .update(payload)
       .eq("id", id)
       .select();
 
     if (error) {
-      console.error("❌ Supabase Update Failed:", error);
-      showToast(`Database Error: ${error.message}`, "error");
+      console.error(`❌ DB Error (${table}):`, error.message);
+      if (typeof showToast === "function")
+        showToast(`DB Error: ${error.message}`, "error");
       return null;
     }
 
-    console.log("✅ Update Successful:", result);
+    console.log(`✅ Success (${table}):`, result);
     return result;
   } catch (err) {
-    console.error("❌ System Error in updateRecord:", err);
+    console.error("❌ System Crash in updateRecord:", err);
     return null;
   }
 }
-
 async function deleteRecord(table, id) {
   try {
     const { error } = await supabaseClient.from(table).delete().eq("id", id);
