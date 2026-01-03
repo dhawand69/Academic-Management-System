@@ -181,6 +181,8 @@ function completeLogin(role, userData) {
   if (role === "faculty") {
     if (typeof populateFacultyClassDropdown === "function")
       populateFacultyClassDropdown();
+    if (typeof populateFacultyMarksDropdown === "function")
+      populateFacultyMarksDropdown();
     setTimeout(addMultiSessionButton, 500);
   } else if (role === "student") {
     if (typeof populateStudentDashboard === "function")
@@ -188,6 +190,8 @@ function completeLogin(role, userData) {
   } else if (role === "admin") {
     if (typeof populateFacultyClassDropdown === "function")
       populateFacultyClassDropdown();
+    if (typeof populateFacultyMarksDropdown === "function")
+      populateFacultyMarksDropdown();
     if (typeof populateAdminClassFilter === "function")
       populateAdminClassFilter("all", "all");
     if (typeof updateDashboard === "function") updateDashboard();
