@@ -434,11 +434,13 @@ function filterByBranch(branch) {
   loadStudents();
 }
 
+// ➤ ADD THESE FUNCTIONS TO FIX THE "PROMOTE" BUTTON ERROR
+
 function promoteFilteredStudents() {
   // 1. Identify targets
   let targets = [];
   if (selectedStudentIds && selectedStudentIds.size > 0) {
-    targets = displayedStudents.filter((s) => selectedStudentIds.has(s.id));
+    targets = displayedStudents.filter(s => selectedStudentIds.has(s.id));
   } else {
     targets = displayedStudents || [];
   }
@@ -451,7 +453,7 @@ function promoteFilteredStudents() {
   // 2. Confirm
   showConfirm(
     `Promote ${targets.length} students to the next Semester?`,
-    async function () {
+    async function() {
       let successCount = 0;
       let failCount = 0;
 
@@ -467,20 +469,17 @@ function promoteFilteredStudents() {
         const result = await updateRecord("students", {
           id: student.id,
           semester: nextSem,
-          year: nextYear,
+          year: nextYear
         });
 
         if (result) successCount++;
         else failCount++;
       }
 
-      showToast(
-        `Promoted: ${successCount}, Failed: ${failCount}`,
-        failCount > 0 ? "warning" : "success"
-      );
-
+      showToast(`Promoted: ${successCount}, Failed: ${failCount}`, failCount > 0 ? "warning" : "success");
+      
       await loadStudents();
-      if (selectedStudentIds) selectedStudentIds.clear();
+      if(selectedStudentIds) selectedStudentIds.clear();
       document.getElementById("masterCheckbox").checked = false;
     }
   );
@@ -497,7 +496,7 @@ function setBulkSemester() {
   // Identify targets
   let targets = [];
   if (selectedStudentIds && selectedStudentIds.size > 0) {
-    targets = displayedStudents.filter((s) => selectedStudentIds.has(s.id));
+    targets = displayedStudents.filter(s => selectedStudentIds.has(s.id));
   } else {
     targets = displayedStudents || [];
   }
@@ -509,26 +508,23 @@ function setBulkSemester() {
 
   showConfirm(
     `Move ${targets.length} students to Semester ${targetSem}?`,
-    async function () {
+    async function() {
       let successCount = 0;
 
       for (const student of targets) {
         const result = await updateRecord("students", {
           id: student.id,
           semester: targetSem,
-          year: Math.ceil(targetSem / 2),
+          year: Math.ceil(targetSem / 2)
         });
 
         if (result) successCount++;
       }
 
-      showToast(
-        `Updated ${successCount} students to Semester ${targetSem}`,
-        "success"
-      );
-
+      showToast(`Updated ${successCount} students to Semester ${targetSem}`, "success");
+      
       await loadStudents();
-      if (selectedStudentIds) selectedStudentIds.clear();
+      if(selectedStudentIds) selectedStudentIds.clear();
       document.getElementById("masterCheckbox").checked = false;
     }
   );
