@@ -343,7 +343,8 @@ async function loadAttendanceHistory() {
 
       // Table
       const sessionContent = document.createElement("div");
-      sessionContent.innerHTML = `<table style="width:100%; font-size:13px; border-collapse: collapse;"><tbody id="rec-${date}-${sessionNum}"></tbody></table>`;
+      // ADD class='table-responsive' to the inner HTML string
+      sessionContent.innerHTML = `<div class="table-responsive"><table style="width:100%; font-size:13px; border-collapse: collapse;"><tbody id="rec-${date}-${sessionNum}"></tbody></table></div>`;
       container.appendChild(sessionContent);
 
       const tbody = sessionContent.querySelector("tbody");
