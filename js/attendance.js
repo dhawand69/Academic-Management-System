@@ -1290,6 +1290,8 @@ async function markMultipleSessions() {
 }
 
 // Load class students
+// attendance.js - Updated loadClassStudents function
+
 async function loadClassStudents(dateOverride) {
   const classSelect = document.getElementById("facultyClassSelect");
   const classId = parseInt(classSelect.value);
@@ -1305,36 +1307,68 @@ async function loadClassStudents(dateOverride) {
     return;
   }
 
-  const classes = await getAll("classes");
-  const selectedClass = classes.find((c) => c.id === classId);
+  // 1. Fetch All Necessary Data (Students, Classes, and Attendance History)
+  const [allStudents, allClasses, allAttendance] = await Promise.all([
+    getAll("students"),
+    getAll("classes"),
+    getAll("attendance"),
+  ]);
+
+  const selectedClass = allClasses.find((c) => c.id === classId);
   if (!selectedClass) return;
 
-  const allStudents = await getAll("students");
-  const classStudents = allStudents.filter(
+  // 2. Get "Standard" Batch Students (Matching Dept & Semester)
+  const standardStudents = allStudents.filter(
     (s) =>
-      s.semester === selectedClass.semester &&
+      s.semester == selectedClass.semester &&
       s.department === selectedClass.department
   );
 
-  const allAttendance = await getAll("attendance");
-  const existingAttendance = allAttendance.filter(
-    (r) => r.classId === classId && r.date === date && r.session === session
+  // 3. Get "History" Students (Anyone previously marked in this class)
+  // This ensures electives/backlog students stick to the list once added.
+  const historyRecords = allAttendance.filter((r) => r.classid == classId);
+  const historyStudentIds = new Set(historyRecords.map((r) => r.studentid));
+  const historyStudents = allStudents.filter((s) =>
+    historyStudentIds.has(s.id)
   );
 
-  const attendanceMap = new Map(
-    existingAttendance.map((r) => [r.studentId, r.status])
+  // 4. Merge Lists (Standard + History) & Remove Duplicates
+  const studentMap = new Map();
+
+  // Add standard batch first
+  standardStudents.forEach((s) => studentMap.set(s.id, s));
+
+  // Add history students (this adds missing electives)
+  historyStudents.forEach((s) => studentMap.set(s.id, s));
+
+  // Convert back to array and Sort by Roll No
+  const finalStudentList = Array.from(studentMap.values());
+  finalStudentList.sort((a, b) =>
+    (a.rollno || "").localeCompare(b.rollno || "")
   );
 
+  // 5. Get Attendance Status for the CURRENT Session (to show green/red toggle)
+  const currentSessionRecords = allAttendance.filter(
+    (r) => r.classid == classId && r.date === date && r.session == session
+  );
+  const statusMap = new Map(
+    currentSessionRecords.map((r) => [r.studentid, r.status])
+  );
+
+  // 6. Render the Grid
   const grid = document.getElementById("studentGrid");
   grid.innerHTML = "";
 
-  if (classStudents.length === 0) {
+  if (finalStudentList.length === 0) {
     grid.innerHTML =
       '<p style="text-align:center; width:100%;">No students found for this class criteria.</p>';
   }
 
-  classStudents.forEach((student) => {
-    const status = attendanceMap.get(student.id) || "absent";
+  finalStudentList.forEach((student) => {
+    // If record exists for today, use it. If not, default to 'absent' (unmarked)
+    const status = statusMap.get(student.id) || "absent";
+
+    // Render the card (isChecked = true if status is 'present')
     renderStudentCard(student, status === "present");
   });
 
