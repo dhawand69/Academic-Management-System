@@ -631,5 +631,159 @@ async function exportInternalMarks(format) {
   }
 }
 
+// marks.js - Add this function to the end of the file
+
+async function downloadFacultyMarksReport() {
+  const classId = parseInt(
+    document.getElementById("facultyMarksClassSelect").value
+  );
+
+  if (!classId) {
+    showToast("Please select a class first", "error");
+    return;
+  }
+
+  showToast("Generating PDF Report...", "info");
+
+  // 1. Fetch Data
+  const [allStudents, allMarks, allClasses, allAttendance] = await Promise.all([
+    getAll("students"),
+    getAll("internal_marks"),
+    getAll("classes"),
+    getAll("attendance"),
+  ]);
+
+  const selectedClass = allClasses.find((c) => c.id === classId);
+  if (!selectedClass) return;
+
+  // 2. Filter Students based on Attendance History (Same logic as table load)
+  const classAttendance = allAttendance.filter((r) => r.classid === classId);
+  const uniqueStudentIds = new Set(classAttendance.map((r) => r.studentid));
+  let classStudents = allStudents.filter((s) => uniqueStudentIds.has(s.id));
+
+  // Sort by Roll No
+  classStudents.sort((a, b) => (a.rollno || "").localeCompare(b.rollno || ""));
+
+  if (classStudents.length === 0) {
+    showToast("No student records found to export.", "warning");
+    return;
+  }
+
+  // 3. Get Marks for these students
+  const classMarks = allMarks.filter((m) => m.classid === classId);
+  const marksMap = new Map(classMarks.map((m) => [m.studentid, m]));
+
+  // 4. Build Report Data
+  let reportData = [];
+  classStudents.forEach((student) => {
+    const mark = marksMap.get(student.id) || {
+      midsem: 0,
+      assignment: 0,
+      attendance: 0,
+      total: 0,
+    };
+    reportData.push({
+      rollNo: student.rollno,
+      name: `${student.firstname} ${student.lastname}`,
+      mid: mark.midsem,
+      ass: mark.assignment,
+      att: mark.attendance,
+      total: parseFloat(mark.total) || 0,
+    });
+  });
+
+  // 5. Calculate Stats
+  const totals = reportData.map((d) => d.total);
+  const highest = Math.max(...totals);
+  const lowest = Math.min(...totals);
+  const average = (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(
+    1
+  );
+
+  // 6. Generate HTML Content for PDF
+  const headerHtml = `
+    <div style="font-family: sans-serif; text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 15px;">
+        <h2 style="margin: 0 0 5px 0;">Internal Marks Report</h2>
+        <h3 style="margin: 0 0 10px 0; color: #555;">${selectedClass.name} (${selectedClass.code})</h3>
+        <div style="font-size: 14px;">
+            <strong>Faculty:</strong> ${selectedClass.faculty} &nbsp;|&nbsp; 
+            <strong>Dept:</strong> ${selectedClass.department} &nbsp;|&nbsp; 
+            <strong>Sem:</strong> ${selectedClass.semester}
+        </div>
+    </div>
+  `;
+
+  let tableHtml = `
+    <table style="width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 12px;">
+        <thead>
+            <tr style="background-color: #f2f2f2;">
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Roll No</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Student Name</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Mid-Sem</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Assign</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Att</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+  `;
+
+  reportData.forEach((row) => {
+    tableHtml += `
+        <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">${row.rollNo}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${row.name}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${row.mid}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${row.ass}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${row.att}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${row.total}</td>
+        </tr>
+    `;
+  });
+
+  tableHtml += `</tbody></table>`;
+
+  const footerHtml = `
+    <div style="margin-top: 20px; font-family: sans-serif; font-size: 13px; background: #f9f9f9; padding: 15px; border-radius: 5px;">
+        <p><strong>Total Students:</strong> ${reportData.length}</p>
+        <p><strong>Class Average:</strong> ${average}</p>
+        <p><strong>Highest Score:</strong> ${highest} &nbsp;|&nbsp; <strong>Lowest Score:</strong> ${lowest}</p>
+        <div style="text-align: right; font-size: 10px; color: #888; margin-top: 10px;">
+            Generated on ${new Date().toLocaleString()}
+        </div>
+    </div>
+  `;
+
+  // 7. Open Print Window
+  const printWindow = window.open("", "_blank");
+  printWindow.document.write(`
+    <html>
+        <head>
+            <title>Internal Marks - ${selectedClass.code}</title>
+            <style>
+                @media print {
+                    @page { margin: 1cm; }
+                    body { -webkit-print-color-adjust: exact; }
+                }
+            </style>
+        </head>
+        <body style="padding: 20px;">
+            ${headerHtml}
+            ${tableHtml}
+            ${footerHtml}
+        </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+
+  // Wait for content to load then print
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 500);
+}
+
 // Initialize Admin Filters when file loads
 document.addEventListener("DOMContentLoaded", initAdminMarksFilters);
