@@ -449,47 +449,51 @@ function promoteFilteredStudents() {
       let updatedCount = 0;
       let errorCount = 0;
 
-      // Show loading state implicitly by the UI waiting
       for (const student of targets) {
-        // Safe parsing to prevent NaN errors
-        let currentSem = parseInt(student.semester);
-        if (isNaN(currentSem)) currentSem = 0;
+        // 1. Safe Parsing (Prevent NaN)
+        const currentSem = parseInt(student.semester) || 0;
 
-        // Calculate new semester (Cap at 9 for Alumni/Graduated)
-        const newSem = currentSem + 1;
-        const finalSem = newSem > 9 ? 9 : newSem;
+        // 2. Calculate New Values
+        let newSem = currentSem + 1;
+        if (newSem > 8) newSem = 8; // Cap at 8 (or 9 for alumni if you prefer)
 
-        // Create a CLEAN update object with only necessary fields
+        const newYear = Math.ceil(newSem / 2);
+
+        // 3. Create Clean Update Object
         const updateData = {
-          id: student.id,
-          semester: finalSem,
-          year: Math.ceil(finalSem / 2),
-          updatedat: new Date().toISOString(),
+          id: parseInt(student.id), // Ensure ID is Integer
+          semester: newSem,
+          year: newYear,
         };
 
-        // Send to Database
+        // 4. Send to Database
         const result = await updateRecord("students", updateData);
 
         if (result) {
           updatedCount++;
         } else {
-          console.error(`Failed to promote student ID: ${student.id}`);
           errorCount++;
         }
       }
 
+      // 5. Final Feedback
       if (errorCount > 0) {
         showToast(
           `Promoted ${updatedCount} students. Failed: ${errorCount}`,
           "warning"
         );
       } else {
-        showToast(`Successfully promoted ${updatedCount} students!`, "success");
+        showToast(
+          `✅ Successfully promoted ${updatedCount} students!`,
+          "success"
+        );
       }
 
+      // 6. Cleanup
       selectedStudentIds.clear();
       document.getElementById("masterCheckbox").checked = false;
-      await loadStudents(); // Refresh table to show new values
+      await loadStudents(); // Refresh Grid
+      await updateDashboard(); // Refresh Stats
     }
   );
 }
@@ -509,23 +513,16 @@ function setBulkSemester() {
       let errorCount = 0;
 
       for (const student of targets) {
-        // Create a CLEAN update object
         const updateData = {
-          id: student.id,
+          id: parseInt(student.id), // Ensure ID is Integer
           semester: targetSem,
           year: Math.ceil(targetSem / 2),
-          updatedat: new Date().toISOString(),
         };
 
-        // Send to Database
         const result = await updateRecord("students", updateData);
 
-        if (result) {
-          updatedCount++;
-        } else {
-          console.error(`Failed to update student ID: ${student.id}`);
-          errorCount++;
-        }
+        if (result) updatedCount++;
+        else errorCount++;
       }
 
       if (errorCount > 0) {
@@ -535,14 +532,15 @@ function setBulkSemester() {
         );
       } else {
         showToast(
-          `Successfully moved ${updatedCount} students to Sem ${targetSem}!`,
+          `✅ Successfully moved ${updatedCount} students to Sem ${targetSem}!`,
           "success"
         );
       }
 
       selectedStudentIds.clear();
       document.getElementById("masterCheckbox").checked = false;
-      await loadStudents(); // Refresh table
+      await loadStudents();
+      await updateDashboard();
     }
   );
 }
