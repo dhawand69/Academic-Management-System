@@ -1379,6 +1379,8 @@ async function loadClassStudents(dateOverride) {
 // Submit attendance
 // Submit attendance (Fixed: Detects existing records correctly)
 // Submit attendance (Fixed: Correctly updates existing records)
+// attendance.js - Updated submitAttendance with Real-Time Progress
+
 async function submitAttendance() {
   const classSelect = document.getElementById("facultyClassSelect");
   const classId = parseInt(classSelect.value);
@@ -1391,67 +1393,95 @@ async function submitAttendance() {
   }
 
   const checkboxes = document.querySelectorAll(".attendance-checkbox");
-  if (checkboxes.length === 0) {
+  const totalStudents = checkboxes.length;
+
+  if (totalStudents === 0) {
     showToast("No students to mark", "error");
     return;
   }
 
-  // 1. Fetch all attendance to check for duplicates
-  const allAttendance = await getAll("attendance");
-
-  // FIX: Using lowercase keys (classid, date, session) to find existing records
-  const existingForSession = allAttendance.filter(
-    (r) => r.classid === classId && r.date === date && r.session === session
-  );
-
-  // FIX: Map using lowercase 'studentid' for quick lookup
-  const existingMap = new Map(existingForSession.map((r) => [r.studentid, r]));
-
-  const promises = [];
-
-  checkboxes.forEach((cb) => {
-    const studentId = parseInt(cb.value);
-    const status = cb.checked ? "present" : "absent";
-
-    // FIX: Object keys must be lowercase for Supabase
-    const record = {
-      classid: classId,
-      studentid: studentId,
-      date: date,
-      session: session,
-      status: status,
-      notes: `Session ${session}`,
-      createdat: new Date().toISOString(),
-    };
-
-    // Check if we already have a record for this student
-    const existing = existingMap.get(studentId);
-
-    if (existing) {
-      // ✅ UPDATE existing record (Attach the ID)
-      record.id = existing.id;
-      // Keep original created date, update the modified date
-      if (existing.createdat) record.createdat = existing.createdat;
-      record.updatedat = new Date().toISOString();
-
-      promises.push(updateRecord("attendance", record));
-    } else {
-      // ✅ CREATE new record
-      promises.push(addRecord("attendance", record));
-    }
-  });
+  // 1. INITIALIZE PROGRESS UI
+  showProgressModal("Saving Attendance");
+  updateProgress(0, totalStudents, "Checking existing records...");
 
   try {
-    await Promise.all(promises);
-    showToast(
-      `Attendance saved for ${checkboxes.length} students in Session ${session}!`
-    );
-    if (typeof generateYearlyReport === "function") generateYearlyReport();
+    // 2. FETCH EXISTING DATA
+    const allAttendance = await getAll("attendance");
 
-    // Optional: Uncheck boxes after saving
-    // checkboxes.forEach((cb) => (cb.checked = false));
+    const existingForSession = allAttendance.filter(
+      (r) => r.classid === classId && r.date === date && r.session === session
+    );
+    const existingMap = new Map(
+      existingForSession.map((r) => [r.studentid, r])
+    );
+
+    const promises = [];
+    let processedCount = 0;
+
+    // 3. HELPER: Track progress for each database call
+    const trackProgress = (dbPromise) => {
+      return dbPromise.then((res) => {
+        processedCount++;
+        // Update the visual bar with "Marking: 5 / 60" style text
+        updateProgress(
+          processedCount,
+          totalStudents,
+          `Marking: ${processedCount} / ${totalStudents}`
+        );
+        return res;
+      });
+    };
+
+    // 4. QUEUE UPDATES
+    checkboxes.forEach((cb) => {
+      const studentId = parseInt(cb.value);
+      const status = cb.checked ? "present" : "absent";
+
+      const record = {
+        classid: classId,
+        studentid: studentId,
+        date: date,
+        session: session,
+        status: status,
+        notes: `Session ${session}`,
+        createdat: new Date().toISOString(),
+      };
+
+      const existing = existingMap.get(studentId);
+      let action;
+
+      if (existing) {
+        // Update existing
+        record.id = existing.id;
+        if (existing.createdat) record.createdat = existing.createdat;
+        record.updatedat = new Date().toISOString();
+        action = updateRecord("attendance", record);
+      } else {
+        // Create new
+        action = addRecord("attendance", record);
+      }
+
+      // Wrap the action with our progress tracker
+      promises.push(trackProgress(action));
+    });
+
+    // 5. EXECUTE ALL
+    await Promise.all(promises);
+
+    // Short delay to let user see "100%" before closing
+    await new Promise((r) => setTimeout(r, 400));
+
+    hideProgressModal();
+
+    // 6. FINAL SUCCESS MESSAGE
+    showToast(
+      `Attendance saved for ${totalStudents} students in Session ${session}!`
+    );
+
+    if (typeof generateYearlyReport === "function") generateYearlyReport();
   } catch (e) {
     console.error(e);
+    hideProgressModal();
     showToast("Error saving attendance", "error");
   }
 }
@@ -2805,7 +2835,7 @@ async function deleteAdminAttendance() {
   }
 
   // --- STEP 3: SECURITY PROMPT ---
-// --- STEP 3: SECURITY PROMPT ---
+  // --- STEP 3: SECURITY PROMPT ---
   const confirmMsg = `⚠️ DANGER ZONE ⚠️\n\nYou are about to DELETE ${recordsToDelete.length} attendance records.\n\nFilters Applied:\n- Class ID: ${classId}\n- Date Mode: ${dateType}\n\nThis action CANNOT be undone.\n\nType "DELETE" to confirm:`;
 
   const userInput = prompt(confirmMsg);
@@ -2814,7 +2844,10 @@ async function deleteAdminAttendance() {
 
   // Verify Confirmation Text (Replaces ADMIN_PASSWORD check)
   if (userInput !== "DELETE") {
-    showToast("❌ Confirmation failed! You must type 'DELETE' exactly.", "error");
+    showToast(
+      "❌ Confirmation failed! You must type 'DELETE' exactly.",
+      "error"
+    );
     return;
   }
 
