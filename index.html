@@ -16,60 +16,129 @@
 <body>
     <!-- LOGIN SCREEN -->
     <div id="loginOverlay" class="login-wrapper">
+        <div class="academic-decoration"></div>
+        <div class="academic-decoration-2"></div>
+        
         <div class="login-card">
             <div class="login-header">
-                <h2>🎓 Academic Management System</h2>
-                <p>Please login to continue</p>
+                <h1>Academic Management System</h1>
+                <p class="login-tagline">Please login to continue</p>
+                <p class="login-subtitle">Secure access to your academic portal</p>
             </div>
 
-            <div class="login-tabs">
-                <div class="login-tab active" onclick="switchLoginTab('admin')" data-role="admin">Admin</div>
-                <div class="login-tab" onclick="switchLoginTab('faculty')" data-role="faculty">Faculty</div>
-                <div class="login-tab" onclick="switchLoginTab('student')" data-role="student">Student</div>
+            <div class="login-tabs-container">
+                <div class="login-tabs" data-active-tab="admin">
+                    <div class="login-tab active" onclick="switchLoginTab('admin')" data-role="admin">
+                        <span class="login-tab-icon">👨‍💼</span>
+                        <span>Admin</span>
+                    </div>
+                    <div class="login-tab" onclick="switchLoginTab('faculty')" data-role="faculty">
+                        <span class="login-tab-icon">👩‍🏫</span>
+                        <span>Faculty</span>
+                    </div>
+                    <div class="login-tab" onclick="switchLoginTab('student')" data-role="student">
+                        <span class="login-tab-icon">👨‍🎓</span>
+                        <span>Student</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Admin Login Form -->
-            <div id="adminLoginForm" class="login-form active">
+            <div id="adminLoginForm" class="login-form active" data-form="admin">
                 <div class="alert alert-error" id="adminLoginError"></div>
                 <form onsubmit="handleAdminLogin(event)">
-                    <div class="form-group">
-                        <label>Admin Email:</label>
-                        <input type="email" id="adminEmail" placeholder="admin@college.edu" required>
+                    <div class="login-form-group">
+                        <label>
+                            <i class="fas fa-envelope"></i>
+                            Admin Email:
+                        </label>
+                        <div class="login-input-group">
+                            <input type="email" id="adminEmail" placeholder="admin@college.edu" value="admin@college.edu" required>
+                            <span class="login-input-icon">📧</span>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Password:</label>
-                        <input type="password" id="adminPassword" placeholder="Enter password" required>
+                    
+                    <div class="login-form-group">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            Password:
+                        </label>
+                        <div class="login-input-group">
+                            <input type="password" id="adminPassword" placeholder="Enter password" required>
+                            <span class="login-input-icon">🔒</span>
+                            <button type="button" class="password-toggle" data-target="admin-password">
+                                👁️
+                            </button>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-full">Login as Admin</button>
+                    
+                    <button type="submit" class="login-btn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login as Admin
+                    </button>
                 </form>
             </div>
 
             <!-- Faculty Login Form -->
-            <div id="facultyLoginForm" class="login-form">
+            <div id="facultyLoginForm" class="login-form" data-form="faculty">
                 <div class="alert alert-error" id="facultyLoginError"></div>
                 <form onsubmit="handleFacultyLogin(event)">
-                    <div class="form-group">
-                        <label>Faculty ID:</label>
-                        <input type="text" id="loginFacultyId" placeholder="Enter Faculty ID" required>
+                    <div class="login-form-group">
+                        <label>
+                            <i class="fas fa-id-card"></i>
+                            Faculty ID:
+                        </label>
+                        <div class="login-input-group">
+                            <input type="text" id="loginFacultyId" placeholder="Enter Faculty ID" required>
+                            <span class="login-input-icon">🆔</span>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Password:</label>
-                        <input type="password" id="loginFacultyPassword" placeholder="Enter password" required>
+                    
+                    <div class="login-form-group">
+                        <label>
+                            <i class="fas fa-lock"></i>
+                            Password:
+                        </label>
+                        <div class="login-input-group">
+                            <input type="password" id="loginFacultyPassword" placeholder="Enter password" required>
+                            <span class="login-input-icon">🔒</span>
+                            <button type="button" class="password-toggle" data-target="faculty-password">
+                                👁️
+                            </button>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-full">Login as Faculty</button>
+                    
+                    <button type="submit" class="login-btn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login as Faculty
+                    </button>
                 </form>
             </div>
 
             <!-- Student Login Form -->
-            <div id="studentLoginForm" class="login-form">
+            <div id="studentLoginForm" class="login-form" data-form="student">
                 <div class="alert alert-error" id="studentLoginError"></div>
                 <form onsubmit="handleStudentLogin(event)">
-                    <div class="form-group">
-                        <label>Registration Number (Roll No):</label>
-                        <input type="text" id="loginStudentId" placeholder="Enter Reg No (e.g. 22156148040)" required>
+                    <div class="login-form-group">
+                        <label>
+                            <i class="fas fa-graduation-cap"></i>
+                            Registration Number (Roll No):
+                        </label>
+                        <div class="login-input-group">
+                            <input type="text" id="loginStudentId" placeholder="Enter Reg No (e.g. 22156148040)" required>
+                            <span class="login-input-icon">🎓</span>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-full">Login as Student</button>
+                    
+                    <button type="submit" class="login-btn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login as Student
+                    </button>
                 </form>
+            </div>
+
+            <div class="login-footer">
+                <p>© 2024 Academic Management System | <a href="#">Help & Support</a></p>
             </div>
         </div>
     </div>
@@ -611,7 +680,7 @@
                                 Excel</button>
                             <button class="btn btn-warning" onclick="exportAdminHistory('json')">📥 Export
                                 JSON</button>
-                        </div>
+                            </div>
                     </div>
 
                     <!-- Year-wise Attendance Summary Section -->
