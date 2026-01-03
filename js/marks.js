@@ -31,6 +31,10 @@ async function populateFacultyMarksDropdown() {
 // marks.js
 
 // 1. UPDATE THIS FUNCTION
+// marks.js - Updated loadFacultyMarksTable function
+
+// marks.js - Updated loadFacultyMarksTable function
+
 async function loadFacultyMarksTable() {
   const classId = parseInt(
     document.getElementById("facultyMarksClassSelect").value
@@ -49,20 +53,22 @@ async function loadFacultyMarksTable() {
   }
 
   tbody.innerHTML =
-    '<tr><td colspan="6" style="text-align:center;">Loading students and marks...</td></tr>';
+    '<tr><td colspan="6" style="text-align:center;">Loading students from attendance records...</td></tr>';
   container.style.display = "block";
 
   try {
-    const [allStudents, allClasses, allMarks] = await Promise.all([
-      getAll("students"),
-      getAll("classes"),
-      getAll("internal_marks"),
-    ]);
+    // 1. Fetch necessary data: Students, Classes, Marks, AND Attendance
+    const [allStudents, allClasses, allMarks, allAttendance] =
+      await Promise.all([
+        getAll("students"),
+        getAll("classes"),
+        getAll("internal_marks"),
+        getAll("attendance"),
+      ]);
 
     const cls = allClasses.find((c) => c.id === classId);
 
-    // --- NEW: LOAD SAVED MAX MARKS STRUCTURE ---
-    // If the database has values, use them. Otherwise default to 20, 10, 10
+    // --- LOAD SAVED MAX MARKS STRUCTURE ---
     if (cls) {
       maxMidInput.value =
         cls.max_midsem !== undefined && cls.max_midsem !== null
@@ -77,29 +83,37 @@ async function loadFacultyMarksTable() {
           ? cls.max_attendance
           : 10;
     }
-    // -------------------------------------------
 
-    // Filter students for this class (Dept + Sem match)
-    const classStudents = allStudents.filter(
-      (s) => s.department === cls.department && s.semester == cls.semester
-    );
+    // --- NEW LOGIC: FILTER STUDENTS BY ATTENDANCE ---
+
+    // 2. Find all attendance records for this specific class
+    // We use strict filtering by classid to ensure we only get relevant students
+    const classAttendance = allAttendance.filter((r) => r.classid === classId);
+
+    // 3. Extract Unique Student IDs using a Set
+    const uniqueStudentIds = new Set(classAttendance.map((r) => r.studentid));
+
+    // 4. Filter the main student list to only include these IDs
+    let classStudents = allStudents.filter((s) => uniqueStudentIds.has(s.id));
+
+    // Fallback: If no attendance exists, warn the user
+    if (classStudents.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="6" style="text-align:center;">No students found in attendance records for this class.<br><small style="color:gray">Please mark attendance for at least one session to populate this list.</small></td></tr>';
+      return;
+    }
+    // ------------------------------------------------
 
     // Sort by Roll No
     classStudents.sort((a, b) =>
       (a.rollno || "").localeCompare(b.rollno || "")
     );
 
-    // Filter existing marks for this class
+    // Filter existing marks for this class to pre-fill inputs
     const existingMarks = allMarks.filter((m) => m.classid === classId);
     const marksMap = new Map(existingMarks.map((m) => [m.studentid, m]));
 
     tbody.innerHTML = "";
-
-    if (classStudents.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="6" style="text-align:center;">No students found for this class.</td></tr>';
-      return;
-    }
 
     classStudents.forEach((student) => {
       const marks = marksMap.get(student.id) || {
