@@ -343,9 +343,14 @@ async function loadStudents() {
             <td><span class="status-badge" style="background:#eaf6fd; color:#2c5282;">Sem ${
               student.semester || "1"
             }</span></td>
-            <td><button class="btn btn-small btn-danger" onclick="deleteStudent(${
-              student.id
-            })">Delete</button></td>`;
+            <td>
+                <button class="btn btn-small btn-info" onclick="openEditStudentModal(${
+                  student.id
+                })">Edit</button>
+                <button class="btn btn-small btn-danger" onclick="deleteStudent(${
+                  student.id
+                })">Delete</button>
+            </td>`;
       tbody.appendChild(tr);
     });
     if (bulkContainer) bulkContainer.style.display = "flex";
@@ -354,7 +359,6 @@ async function loadStudents() {
   if (countLabel) countLabel.textContent = `(${displayedStudents.length})`;
   if (typeof updateSelectionUI === "function") updateSelectionUI();
 }
-
 async function deleteStudent(id) {
   showConfirm("Delete this student?", async function () {
     await deleteRecord("students", id);
@@ -1322,4 +1326,61 @@ function filterStudentsByBranch() {
   const branch = branchSelect ? branchSelect.value : "all";
   activeStudentFilter.branch = branch;
   loadStudents();
+}
+
+// =============================================
+// EDIT STUDENT LOGIC
+// =============================================
+
+// 1. Open Modal & Pre-fill Data
+async function openEditStudentModal(id) {
+  const student = await getRecord("students", id);
+  if (!student) return;
+
+  // Set values in the modal
+  document.getElementById("editStudentIdKey").value = student.id;
+  document.getElementById("editStudentRollNo").value =
+    student.rollno || student.rollNo || "";
+  document.getElementById("editStudentFirstName").value =
+    student.firstname || student.firstName || "";
+  document.getElementById("editStudentLastName").value =
+    student.lastname || student.lastName || "";
+  document.getElementById("editStudentEmail").value = student.email || "";
+  document.getElementById("editStudentDept").value =
+    student.department || "Computer Science";
+  document.getElementById("editStudentYear").value = student.year || 1;
+  document.getElementById("editStudentSemester").value = student.semester || 1;
+
+  openModal("editUserModal");
+}
+
+// 2. Save Changes
+async function updateStudent(event) {
+  event.preventDefault();
+
+  const idKey = parseInt(document.getElementById("editStudentIdKey").value);
+  const oldRecord = await getRecord("students", idKey);
+
+  // Construct updated object
+  const updatedData = {
+    id: idKey, // Primary Key
+    rollno: document.getElementById("editStudentRollNo").value,
+    firstname: document.getElementById("editStudentFirstName").value,
+    lastname: document.getElementById("editStudentLastName").value,
+    email: document.getElementById("editStudentEmail").value,
+    department: document.getElementById("editStudentDept").value,
+    year: parseInt(document.getElementById("editStudentYear").value),
+    semester: parseInt(document.getElementById("editStudentSemester").value),
+    // Preserve old creation date
+    createdat: oldRecord
+      ? oldRecord.createdat || oldRecord.created_at
+      : new Date().toISOString(),
+    updatedat: new Date().toISOString(),
+  };
+
+  await updateRecord("students", updatedData);
+
+  showToast("Student details updated successfully!");
+  closeModal("editUserModal");
+  loadStudents(); // Refresh table
 }
