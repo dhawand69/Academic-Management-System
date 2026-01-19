@@ -1,167 +1,248 @@
-// import.js - Data Import Functions with Sanitization
-// UPDATED: Supports Internal Marks & Safe Wipe
+// js/import.js - Handles Bulk Data Imports (CSV)
+// UPDATED: Supports Multi-Branch parsing (handles quoted CSV fields)
 
-// 1. COLUMN SANITIZATION
-function sanitizeRecord(store, record) {
-  const validColumns = {
-    students: ['id', 'rollno', 'firstname', 'lastname', 'email', 'department', 'year', 'semester', 'createdat', 'updatedat'],
-    faculty: ['id', 'facultyid', 'firstname', 'lastname', 'email', 'department', 'specialization', 'password', 'createdat', 'updatedat'],
-    classes: ['id', 'code', 'name', 'department', 'semester', 'faculty', 'year', 'credits', 'max_midsem', 'max_assignment', 'max_attendance', 'createdat', 'updatedat', 'is_active'],
-    attendance: ['id', 'classid', 'studentid', 'date', 'session', 'status', 'notes', 'createdat', 'updatedat'],
-    internal_marks: ['id', 'classid', 'studentid', 'midsem', 'assignment', 'attendance', 'total', 'createdat', 'updatedat'],
-    academic_years: ['id', 'year', 'startdate', 'enddate', 'type', 'createdat'],
-    settings: ['id', 'key', 'value', 'createdat', 'updatedat']
-  };
+// ==========================================
+// 1. ROBUST CSV PARSING (The Fix)
+// ==========================================
 
-  const cleanedRecord = {};
-  const columns = validColumns[store] || [];
-
-  columns.forEach(column => {
-    // Find matching key (case-insensitive)
-    const sourceKey = Object.keys(record).find(key => 
-      key.toLowerCase() === column.toLowerCase()
-    );
-
-    if (sourceKey && record[sourceKey] !== undefined && record[sourceKey] !== null) {
-      cleanedRecord[column] = record[sourceKey];
-    }
-  });
-
-  return Object.keys(cleanedRecord).length > 0 ? cleanedRecord : record;
+/**
+ * Parses a single CSV line, respecting quotes.
+ * Handles: "Civil,Mechanical", "Doe, John", etc.
+ */
+function parseCSVLine(text) {
+    // Regex to match CSV fields:
+    // 1. Single Quoted '...'
+    // 2. Double Quoted "..."
+    // 3. Unquoted values (no commas)
+    const re_value = /(?!\s*$)\s*(?:'([^']*)'|"([^"]*)"|([^,'"\s\\]*(?:\s+[^,'"\s\\]+)*))\s*(?:,|$)/g;
+    
+    const a = [];
+    
+    text.replace(re_value, function(m0, m1, m2, m3) {
+        // m1: Single quoted value
+        if (m1 !== undefined) a.push(m1.replace(/\\'/g, "'"));
+        // m2: Double quoted value (This is what we need for "Civil,Mechanical")
+        else if (m2 !== undefined) a.push(m2.replace(/\\"/g, '"'));
+        // m3: Unquoted value
+        else if (m3 !== undefined) a.push(m3);
+        return '';
+    });
+    
+    // Handle special case of empty last value (e.g. "a,b,")
+    if (/,\s*$/.test(text)) a.push('');
+    return a;
 }
 
-// 2. SAFE DATABASE WIPE (Order Matters!)
-async function wipeDatabase(progressBar) {
-  console.log("🧹 Starting Safe Database Wipe...");
-  if(progressBar) progressBar.textContent = "Cleaning old data...";
+/**
+ * Parses the full CSV content into an array of objects
+ */
+function parseCSV(content) {
+    const lines = content.split(/\r?\n/).filter(line => line.trim() !== '');
+    if (lines.length < 2) return [];
 
-  // Delete Children First (Foreign Key Dependencies)
-  await clearStore('internal_marks');
-  await clearStore('attendance');
-  if(progressBar) progressBar.style.width = '20%';
+    // Parse Headers
+    const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+    
+    const data = [];
 
-  // Delete Classes
-  await clearStore('classes');
-  if(progressBar) progressBar.style.width = '40%';
+    // Parse Rows
+    for (let i = 1; i < lines.length; i++) {
+        const currentLine = lines[i];
+        if (!currentLine) continue;
 
-  // Delete Independent Tables
-  await clearStore('students');
-  await clearStore('faculty');
-  await clearStore('academic_years');
-  await clearStore('settings');
-  
-  if(progressBar) progressBar.style.width = '50%';
-  console.log("✅ Database Wiped Clean");
-}
+        const values = parseCSVLine(currentLine);
 
-// 3. IMPORT LOGIC (ZIP)
-async function importStructuredData(zipContent, progressBar) {
-  await wipeDatabase(progressBar);
-
-  // Import Order: Independent -> Dependent
-  const stores = ['students', 'faculty', 'academic_years', 'settings', 'classes', 'attendance', 'internal_marks'];
-
-  for (let i = 0; i < stores.length; i++) {
-    const store = stores[i];
-    const file = zipContent.file(store + '.json');
-
-    if (file) {
-      try {
-        const text = await file.async('text');
-        const data = JSON.parse(text);
-
-        for (const item of data) {
-          const cleanedItem = sanitizeRecord(store, item);
-          await addRecord(store, cleanedItem);
+        // Map headers to values
+        if (values.length === headers.length) {
+            const obj = {};
+            headers.forEach((header, index) => {
+                let val = values[index];
+                // Clean up any remaining quotes if regex missed them (rare)
+                if (typeof val === 'string') val = val.trim(); 
+                obj[header] = val;
+            });
+            data.push(obj);
+        } else {
+            console.warn(`Skipping line ${i + 1}: Column count mismatch. Expected ${headers.length}, got ${values.length}.`);
         }
-        console.log(`✅ Imported ${store}`);
-
-      } catch (error) {
-        console.error(`Error importing ${store}:`, error);
-      }
     }
-
-    const percent = 50 + Math.round(((i + 1) / stores.length) * 50);
-    if(progressBar) {
-        progressBar.style.width = percent + '%';
-        progressBar.textContent = percent + '%';
-    }
-  }
+    return data;
 }
 
-// 4. IMPORT LOGIC (JSON File)
-async function importFromStructuredJSON(completeData, progressBar) {
-  await wipeDatabase(progressBar);
+// ==========================================
+// 2. IMPORT HANDLERS
+// ==========================================
 
-  const stores = ['students', 'faculty', 'academic_years', 'settings', 'classes', 'attendance', 'internal_marks'];
-
-  for (let i = 0; i < stores.length; i++) {
-    const store = stores[i];
-    const data = completeData.data[store];
-
-    if (data && Array.isArray(data)) {
-      try {
-        for (const item of data) {
-          const cleanedItem = sanitizeRecord(store, item);
-          await addRecord(store, cleanedItem);
+// Triggered by the "Import" buttons in the UI
+function triggerImport(type) {
+    // Create a hidden file input dynamically
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    
+    input.onchange = e => {
+        const file = e.target.files[0];
+        if (file) {
+            processFile(file, type);
         }
-        console.log(`✅ Imported ${store}`);
-      } catch (error) {
-        console.error(`Error importing ${store}:`, error);
-      }
-    }
-
-    const percent = 50 + Math.round(((i + 1) / stores.length) * 50);
-    if(progressBar) {
-        progressBar.style.width = percent + '%';
-        progressBar.textContent = percent + '%';
-    }
-  }
+    };
+    
+    input.click();
 }
 
-// 5. MAIN HANDLER
-async function handleCompleteDbUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+function processFile(file, type) {
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+        const content = e.target.result;
+        try {
+            const parsedData = parseCSV(content);
+            
+            if (parsedData.length === 0) {
+                showToast("CSV is empty or invalid format.", "error");
+                return;
+            }
 
-  const progressDiv = document.getElementById('completeDbProgress');
-  const progressBar = document.getElementById('completeDbProgressBar');
+            await importDataToDB(type, parsedData);
+            
+        } catch (error) {
+            console.error("CSV Parse Error:", error);
+            showToast("Error parsing CSV file.", "error");
+        }
+    };
+    
+    reader.readAsText(file);
+}
 
-  if (progressDiv) progressDiv.style.display = 'block';
-  if (progressBar) { progressBar.style.width = '5%'; progressBar.textContent = '5%'; }
+// ==========================================
+// 3. DATABASE IMPORT LOGIC
+// ==========================================
 
-  try {
-    if (file.name.endsWith('.zip')) {
-      // ZIP Logic
-      if (typeof JSZip === 'undefined') throw new Error('JSZip library missing.');
-      const zip = new JSZip();
-      const zipContent = await zip.loadAsync(file);
-      await importStructuredData(zipContent, progressBar);
+async function importDataToDB(type, data) {
+    const total = data.length;
+    showProgressModal(`Importing ${type}...`);
+    
+    let successCount = 0;
+    let failCount = 0;
 
-    } else if (file.name.endsWith('.json')) {
-      // JSON Logic
-      const text = await file.text();
-      const data = JSON.parse(text);
-      
-      if(data.data) {
-          await importFromStructuredJSON(data, progressBar);
-      } else {
-          // Legacy format fallback
-          alert("Legacy format not fully supported with new modules. Please convert.");
-      }
-    } 
+    // Optional: Clear existing data before import?
+    // Uncomment next line if you want to wipe the table first:
+    // await clearStore(type);
 
-    if (progressBar) { progressBar.style.width = '100%'; progressBar.textContent = '100%'; }
-    showToast('✅ Database imported successfully!', 'success');
+    for (let i = 0; i < total; i++) {
+        const row = data[i];
+        let record = null;
 
-    setTimeout(() => {
-        location.reload(); // Best to reload to refresh all caches
-    }, 1500);
+        updateProgress(i + 1, total, `Processing row ${i + 1} of ${total}`);
 
-  } catch (error) {
-    console.error('Import error:', error);
-    showToast(`Import failed: ${error.message}`, 'error');
-    if (progressDiv) progressDiv.style.display = 'none';
-  }
-  event.target.value = '';
+        try {
+            // DATA MAPPING & CLEANING
+            switch (type) {
+                case 'students':
+                    record = {
+                        rollno: row.rollno,
+                        firstname: row.firstname,
+                        lastname: row.lastname,
+                        email: row.email,
+                        department: row.department,
+                        year: parseInt(row.year) || 1,
+                        semester: parseInt(row.semester) || 1,
+                        createdat: new Date().toISOString()
+                    };
+                    break;
+
+                case 'faculty':
+                    record = {
+                        facultyid: row.facultyid,
+                        firstname: row.firstname,
+                        lastname: row.lastname,
+                        email: row.email,
+                        department: row.department,
+                        specialization: row.specialization,
+                        password: row.password || 'password123', // Default password
+                        createdat: new Date().toISOString()
+                    };
+                    break;
+
+                case 'classes':
+                    // This is where the Multi-Branch fix shines
+                    // "row.department" will correctly be "Civil,Mechanical" 
+                    // thanks to parseCSVLine()
+                    record = {
+                        code: row.code,
+                        name: row.name,
+                        department: row.department, 
+                        semester: parseInt(row.semester),
+                        faculty: row.faculty,
+                        year: parseInt(row.year),
+                        credits: parseInt(row.credits),
+                        createdat: new Date().toISOString()
+                    };
+                    break;
+            }
+
+            if (record) {
+                const result = await addRecord(type, record);
+                if (result) successCount++;
+                else failCount++;
+            }
+
+        } catch (err) {
+            console.error(`Row ${i} failed:`, err);
+            failCount++;
+        }
+    }
+
+    hideProgressModal();
+    
+    const msg = `Import Complete!\nSuccess: ${successCount}\nFailed: ${failCount}`;
+    showToast(msg, failCount > 0 ? "warning" : "success");
+    
+    // Refresh UI Tables
+    if (type === 'students') loadStudents();
+    if (type === 'faculty') loadFaculty();
+    if (type === 'classes') loadClasses();
+}
+
+// ==========================================
+// 4. UI HELPERS (Progress Bar)
+// ==========================================
+
+function showProgressModal(title) {
+    let modal = document.getElementById('progressModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'progressModal';
+        modal.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: flex; align-items: center; 
+            justify-content: center; z-index: 10000;
+        `;
+        modal.innerHTML = `
+            <div style="background:white; padding:20px; border-radius:8px; width:300px; text-align:center;">
+                <h3 id="pTitle" style="margin-bottom:15px;">${title}</h3>
+                <div style="background:#eee; height:20px; border-radius:10px; overflow:hidden;">
+                    <div id="pBar" style="background:#3498db; height:100%; width:0%; transition:width 0.2s;"></div>
+                </div>
+                <p id="pText" style="margin-top:10px; font-size:12px; color:#666;">Starting...</p>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    } else {
+        document.getElementById('pTitle').textContent = title;
+        modal.style.display = 'flex';
+    }
+}
+
+function updateProgress(current, total, text) {
+    const percent = Math.round((current / total) * 100);
+    const bar = document.getElementById('pBar');
+    const txt = document.getElementById('pText');
+    if (bar) bar.style.width = `${percent}%`;
+    if (txt) txt.textContent = `${text} (${percent}%)`;
+}
+
+function hideProgressModal() {
+    const modal = document.getElementById('progressModal');
+    if (modal) modal.style.display = 'none';
 }
