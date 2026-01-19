@@ -56,9 +56,8 @@ function switchAdminTab(tabName) {
   if (event && event.target) event.target.classList.add("active");
 
   if (tabName === "attendanceHistory") {
-    document.getElementById(
-      "adminAttendanceBody"
-    ).innerHTML = `<tr><td colspan="10" style="text-align:center;">⚙️ Set filters to view data</td></tr>`;
+    document.getElementById("adminAttendanceBody").innerHTML =
+      `<tr><td colspan="10" style="text-align:center;">⚙️ Set filters to view data</td></tr>`;
   }
   if (tabName === "bulkExport" && typeof updateExportStats === "function") {
     updateExportStats();
@@ -112,7 +111,7 @@ function previewBatchClasses() {
   } else {
     showToast(
       "No valid lines found. Format: Sem, Name, Code, Faculty",
-      "error"
+      "error",
     );
   }
 }
@@ -121,7 +120,9 @@ async function saveBatchClasses() {
   try {
     const allFaculty = await getAll("faculty");
     const existingFacultyNames = new Set(
-      allFaculty.map((f) => `${f.firstName} ${f.lastName}`.toLowerCase().trim())
+      allFaculty.map((f) =>
+        `${f.firstName} ${f.lastName}`.toLowerCase().trim(),
+      ),
     );
     const newFacultyMap = new Map();
 
@@ -206,18 +207,18 @@ async function saveBatchClasses() {
 
     if (newFacultyMap.size > 0) {
       const facultyPromises = Array.from(newFacultyMap.values()).map((f) =>
-        addRecord("faculty", f)
+        addRecord("faculty", f),
       );
       await Promise.all(facultyPromises);
       showToast(
         `Created ${newFacultyMap.size} new faculty profiles (Default Password: pass123)`,
-        "info"
+        "info",
       );
       await loadFaculty();
     }
 
     const classPromises = parsedBatchClasses.map((cls) =>
-      addRecord("classes", cls)
+      addRecord("classes", cls),
     );
     await Promise.all(classPromises);
 
@@ -332,8 +333,8 @@ async function loadStudents() {
             <td><input type="checkbox" class="student-checkbox" value="${
               student.id
             }" onchange="handleCheckboxChange(this)" ${
-        isSelected ? "checked" : ""
-      }></td>
+              isSelected ? "checked" : ""
+            }></td>
             <td style="cursor: pointer; color: var(--color-primary); font-weight:bold;" onclick="viewStudentAttendance(${
               student.id
             })">${roll}</td>
@@ -523,7 +524,7 @@ function promoteFilteredStudents() {
         const nextYear = Math.ceil(nextSem / 2);
 
         console.log(
-          `[DEBUG] Updating student ${student.id}: Sem ${currentSem} → Sem ${nextSem}, Year ${nextYear}`
+          `[DEBUG] Updating student ${student.id}: Sem ${currentSem} → Sem ${nextSem}, Year ${nextYear}`,
         );
 
         const result = await updateRecord("students", {
@@ -543,7 +544,7 @@ function promoteFilteredStudents() {
 
       showToast(
         `Operation Complete: ${success} Updated, ${fail} Failed`,
-        fail > 0 ? "warning" : "success"
+        fail > 0 ? "warning" : "success",
       );
 
       // Refresh the student list
@@ -553,7 +554,7 @@ function promoteFilteredStudents() {
       if (selectedStudentIds) selectedStudentIds.clear();
       const masterCheckbox = document.getElementById("masterCheckbox");
       if (masterCheckbox) masterCheckbox.checked = false;
-    }
+    },
   );
 }
 function setBulkSemester() {
@@ -564,36 +565,40 @@ function setBulkSemester() {
     return;
   }
   const targetSem = parseInt(dropdown.value);
-  
+
   // Get current table rows
   const tableBody = document.getElementById("usersTableBody");
   const studentRows = tableBody.querySelectorAll("tr");
-  
+
   // Check for selected checkboxes
-  const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+  const checkboxes = document.querySelectorAll(".student-checkbox:checked");
   let targets = [];
-  
+
   if (checkboxes.length > 0) {
-    console.log(`[DEBUG] Using ${checkboxes.length} selected students for bulk update`);
-    
-    checkboxes.forEach(cb => {
+    console.log(
+      `[DEBUG] Using ${checkboxes.length} selected students for bulk update`,
+    );
+
+    checkboxes.forEach((cb) => {
       const studentId = parseInt(cb.value);
-      const row = cb.closest('tr');
+      const row = cb.closest("tr");
       if (row) {
         targets.push({
-          id: studentId
+          id: studentId,
         });
       }
     });
   } else {
-    console.log(`[DEBUG] Using all ${studentRows.length} visible students for bulk update`);
-    
-    studentRows.forEach(row => {
-      const checkbox = row.querySelector('.student-checkbox');
+    console.log(
+      `[DEBUG] Using all ${studentRows.length} visible students for bulk update`,
+    );
+
+    studentRows.forEach((row) => {
+      const checkbox = row.querySelector(".student-checkbox");
       if (checkbox) {
         const studentId = parseInt(checkbox.value);
         targets.push({
-          id: studentId
+          id: studentId,
         });
       }
     });
@@ -615,18 +620,21 @@ function setBulkSemester() {
         const result = await updateRecord("students", {
           id: student.id,
           semester: targetSem,
-          year: targetYear
+          year: targetYear,
         });
 
         if (result) successCount++;
       }
 
-      showToast(`Updated ${successCount} students to Semester ${targetSem}`, "success");
+      showToast(
+        `Updated ${successCount} students to Semester ${targetSem}`,
+        "success",
+      );
 
       await loadStudents();
       if (selectedStudentIds) selectedStudentIds.clear();
       document.getElementById("masterCheckbox").checked = false;
-    }
+    },
   );
 }
 function deleteFilteredStudents() {
@@ -639,13 +647,13 @@ function deleteFilteredStudents() {
     `⚠️ DANGER: Permanently delete ${targets.length} students?`,
     async function () {
       const deletePromises = targets.map((student) =>
-        deleteRecord("students", student.id)
+        deleteRecord("students", student.id),
       );
       await Promise.all(deletePromises);
       showToast(`Deleted ${targets.length} students!`, "success");
       selectedStudentIds.clear();
       loadStudents();
-    }
+    },
   );
 }
 
@@ -655,12 +663,12 @@ async function clearAllStudents() {
     async function () {
       const allStudents = await getAll("students");
       const deletePromises = allStudents.map((s) =>
-        deleteRecord("students", s.id)
+        deleteRecord("students", s.id),
       );
       await Promise.all(deletePromises);
       showToast("All students deleted", "success");
       loadStudents();
-    }
+    },
   );
 }
 
@@ -700,7 +708,7 @@ async function openEditFacultyModal(id) {
 
   // FIX: Filter out archived classes so they don't appear in the assignment list
   const deptClasses = classes.filter(
-    (c) => c.department === faculty.department && c.is_active !== false
+    (c) => c.department === faculty.department && c.is_active !== false,
   );
 
   const container = document.getElementById("editFacultyClassesList");
@@ -796,7 +804,7 @@ async function viewFacultyProfile(id) {
 
   // FIX: Filter out archived classes here too
   const myClasses = classes.filter(
-    (c) => c.faculty === fullName && c.is_active !== false
+    (c) => c.faculty === fullName && c.is_active !== false,
   );
 
   let classRows = "";
@@ -853,7 +861,7 @@ async function loadFaculty() {
   tbody.innerHTML = "";
 
   const filteredFaculty = allFaculty.filter((f) =>
-    filterBranch === "all" ? true : f.department === filterBranch
+    filterBranch === "all" ? true : f.department === filterBranch,
   );
 
   filteredFaculty.forEach((fac) => {
@@ -861,13 +869,13 @@ async function loadFaculty() {
 
     // FIX: Filter out archived classes (is_active !== false)
     const myClasses = classes.filter(
-      (c) => c.faculty === fullName && c.is_active !== false
+      (c) => c.faculty === fullName && c.is_active !== false,
     );
 
     const classBadges = myClasses
       .map(
         (c) =>
-          `<span class="assigned-classes-badge">${c.code} (${c.semester})</span>`
+          `<span class="assigned-classes-badge">${c.code} (${c.semester})</span>`,
       )
       .join("");
 
@@ -886,8 +894,8 @@ async function loadFaculty() {
           <td><button class="btn btn-small btn-info" onclick="openEditFacultyModal(${
             fac.id
           })">Edit</button><button class="btn btn-small btn-danger" onclick="deleteFaculty(${
-      fac.id
-    })">Delete</button></td>`;
+            fac.id
+          })">Delete</button></td>`;
     tbody.appendChild(tr);
   });
 
@@ -915,10 +923,18 @@ async function deleteFaculty(id) {
 
 async function addClass(event) {
   event.preventDefault();
+
+  // Handle Multi-Select for Department
+  const deptSelect = document.getElementById("classDept");
+  const selectedDepts = Array.from(deptSelect.selectedOptions).map(
+    (opt) => opt.value,
+  );
+  const deptString = selectedDepts.join(","); // Saves as "Civil,Mechanical"
+
   const classData = {
     code: document.getElementById("classCode").value,
     name: document.getElementById("courseName").value,
-    department: document.getElementById("classDept").value,
+    department: deptString, // Store combined string
     semester: parseInt(document.getElementById("classSemester").value),
     faculty: document.getElementById("classFaculty").value,
     year: parseInt(document.getElementById("classYear").value),
@@ -937,11 +953,18 @@ async function updateClass(event) {
   const idKey = parseInt(document.getElementById("editClassIdKey").value);
   const oldRecord = await getRecord("classes", idKey);
 
+  // Handle Multi-Select for Department
+  const deptSelect = document.getElementById("editClassDept");
+  const selectedDepts = Array.from(deptSelect.selectedOptions).map(
+    (opt) => opt.value,
+  );
+  const deptString = selectedDepts.join(",");
+
   const updatedData = {
     id: idKey,
     code: document.getElementById("editClassCode").value,
     name: document.getElementById("editCourseName").value,
-    department: document.getElementById("editClassDept").value,
+    department: deptString, // Store combined string
     semester: parseInt(document.getElementById("editClassSemester").value),
     faculty: document.getElementById("editClassFaculty").value,
     year: parseInt(document.getElementById("editClassYear").value),
@@ -966,10 +989,20 @@ async function openEditClassModal(id) {
   document.getElementById("editClassIdKey").value = cls.id;
   document.getElementById("editClassCode").value = cls.code;
   document.getElementById("editCourseName").value = cls.name;
-  document.getElementById("editClassDept").value = cls.department;
   document.getElementById("editClassSemester").value = cls.semester;
   document.getElementById("editClassYear").value = cls.year;
   document.getElementById("editClassCredits").value = cls.credits;
+
+  // Handle Multi-Select Pre-selection
+  const deptSelect = document.getElementById("editClassDept");
+  const classDepts = cls.department.split(","); // Split "Civil,Mechanical" back to array
+
+  // Loop options and select if in array
+  for (let i = 0; i < deptSelect.options.length; i++) {
+    deptSelect.options[i].selected = classDepts.includes(
+      deptSelect.options[i].value,
+    );
+  }
 
   const allFaculty = await getAll("faculty");
   const select = document.getElementById("editClassFaculty");
@@ -993,7 +1026,7 @@ async function loadClasses() {
 
   // Inject Archive Button if missing
   const filterContainer = document.querySelector(
-    "#adminClasses .filter-container"
+    "#adminClasses .filter-container",
   );
   if (filterContainer && !document.getElementById("btnToggleArchive")) {
     const btn = document.createElement("button");
@@ -1031,8 +1064,13 @@ async function loadClasses() {
     }
 
     // B. Branch Filter
+    // Inside loadClasses function in ui.js
+    // Find the filtering logic section:
+
+    // B. Branch Filter
     if (branchFilter !== "all") {
-      if (cls.department !== branchFilter) return false;
+      // Check if the comma-separated string contains the filter
+      if (!cls.department.includes(branchFilter)) return false;
     }
 
     // C. Year Filter
@@ -1225,7 +1263,7 @@ function getTargetStudents() {
   // Option A: Specific Checkboxes Selected
   if (selectedStudentIds && selectedStudentIds.size > 0) {
     console.log(
-      `[DEBUG] Using ${selectedStudentIds.size} selected checkboxes.`
+      `[DEBUG] Using ${selectedStudentIds.size} selected checkboxes.`,
     );
     // displayedStudents must be available globally from config.js/main.js
     return displayedStudents.filter((s) => selectedStudentIds.has(s.id));
@@ -1233,7 +1271,7 @@ function getTargetStudents() {
 
   // Option B: Apply to All Currently Visible
   console.log(
-    `[DEBUG] Using all ${displayedStudents.length} displayed students.`
+    `[DEBUG] Using all ${displayedStudents.length} displayed students.`,
   );
   return displayedStudents;
 }
@@ -1312,9 +1350,8 @@ function updateSelectionUI() {
   });
   if (count >= 4 && count < displayedStudents.length) {
     banner.style.display = "flex";
-    document.getElementById(
-      "selectAllText"
-    ).textContent = `You have selected ${count} students.`;
+    document.getElementById("selectAllText").textContent =
+      `You have selected ${count} students.`;
     document.getElementById("selectAllCount").textContent =
       displayedStudents.length;
   } else {
@@ -1326,7 +1363,7 @@ function renderStudentCard(student, isChecked = false) {
   const grid = document.getElementById("studentGrid");
   if (document.getElementById(`student-card-${student.id}`)) {
     const checkbox = document.querySelector(
-      `#student-card-${student.id} .attendance-checkbox`
+      `#student-card-${student.id} .attendance-checkbox`,
     );
     if (checkbox) checkbox.checked = isChecked;
     return;
@@ -1374,7 +1411,7 @@ window.onclick = function (event) {
 function toggleDateRange() {
   const rangeInputs = document.getElementById("dateRangeInputs");
   const isRange = document.querySelector(
-    'input[name="dateFilterType"][value="range"]'
+    'input[name="dateFilterType"][value="range"]',
   ).checked;
 
   if (rangeInputs) {
@@ -1399,10 +1436,10 @@ function toggleArchivedView() {
 
   // 2. Toggle Visibility of Filter Containers
   const activeContainer = document.getElementById(
-    "activeBranchFilterContainer"
+    "activeBranchFilterContainer",
   );
   const archiveContainer = document.getElementById(
-    "archiveBranchFilterContainer"
+    "archiveBranchFilterContainer",
   );
 
   if (activeContainer && archiveContainer) {
@@ -1443,7 +1480,7 @@ async function archiveClass(id) {
       await updateRecord("classes", updatedData);
       showToast("Class archived successfully!", "success");
       loadClasses();
-    }
+    },
   );
 }
 
@@ -1530,22 +1567,23 @@ async function updateStudent(event) {
   loadStudents(); // Refresh table
 }
 
-
-
 function debugPromote() {
   console.log("=== DEBUG PROMOTE FUNCTION ===");
-  
+
   // Check table
   const tableBody = document.getElementById("usersTableBody");
   console.log("Table body exists:", !!tableBody);
-  console.log("Table HTML (first 500 chars):", tableBody.innerHTML.substring(0, 500));
-  
+  console.log(
+    "Table HTML (first 500 chars):",
+    tableBody.innerHTML.substring(0, 500),
+  );
+
   // Check checkboxes
-  const checkboxes = document.querySelectorAll('.student-checkbox');
-  const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+  const checkboxes = document.querySelectorAll(".student-checkbox");
+  const checkedBoxes = document.querySelectorAll(".student-checkbox:checked");
   console.log("Total checkboxes:", checkboxes.length);
   console.log("Checked checkboxes:", checkedBoxes.length);
-  
+
   // Test extracting data from first row
   const firstRow = tableBody.querySelector("tr");
   if (firstRow) {
