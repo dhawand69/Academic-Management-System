@@ -44,7 +44,7 @@ async function populateFacultyClassDropdown() {
 // Populate admin class filter
 async function populateAdminClassFilter(
   semesterFilter = "all",
-  branchFilter = "all"
+  branchFilter = "all",
 ) {
   const classes = await getAll("classes");
   const classSelect = document.getElementById("adminClassFilter");
@@ -55,13 +55,13 @@ async function populateAdminClassFilter(
 
   if (semesterFilter !== "all") {
     filteredClasses = filteredClasses.filter(
-      (cls) => cls.semester == semesterFilter
+      (cls) => cls.semester == semesterFilter,
     );
   }
 
   if (branchFilter !== "all") {
     filteredClasses = filteredClasses.filter(
-      (cls) => cls.department === branchFilter
+      (cls) => cls.department === branchFilter,
     );
   }
 
@@ -89,13 +89,13 @@ async function updateClassFilterDropdown(semesterFilter, branchFilter) {
 
   if (semesterFilter !== "all") {
     filteredClasses = filteredClasses.filter(
-      (cls) => cls.semester == semesterFilter
+      (cls) => cls.semester == semesterFilter,
     );
   }
 
   if (branchFilter !== "all") {
     filteredClasses = filteredClasses.filter(
-      (cls) => cls.department === branchFilter
+      (cls) => cls.department === branchFilter,
     );
   }
 
@@ -126,13 +126,11 @@ async function updateClassFilterDropdown(semesterFilter, branchFilter) {
 // Populate student dashboard
 async function populateStudentDashboard(student) {
   // FIX: Using lowercase keys (firstname, lastname, rollno)
-  document.getElementById(
-    "studentNameDisplay"
-  ).textContent = `${student.firstname} ${student.lastname}`;
+  document.getElementById("studentNameDisplay").textContent =
+    `${student.firstname} ${student.lastname}`;
 
-  document.getElementById(
-    "studentRollDisplay"
-  ).textContent = `Roll No: ${student.rollno}`;
+  document.getElementById("studentRollDisplay").textContent =
+    `Roll No: ${student.rollno}`;
 
   document.getElementById("studentEmailDisplay").textContent =
     student.email || "N/A";
@@ -229,7 +227,7 @@ function switchFacultyTab(tab, event) {
 
   // Show selected tab
   const selectedTab = document.getElementById(
-    "faculty" + tab.charAt(0).toUpperCase() + tab.slice(1)
+    "faculty" + tab.charAt(0).toUpperCase() + tab.slice(1),
   );
   if (selectedTab) {
     selectedTab.style.display = "block";
@@ -300,7 +298,7 @@ async function loadAttendanceHistory() {
   });
 
   const sortedDates = Object.keys(dateGroups).sort(
-    (a, b) => new Date(b) - new Date(a)
+    (a, b) => new Date(b) - new Date(a),
   );
 
   sortedDates.forEach((date) => {
@@ -343,8 +341,7 @@ async function loadAttendanceHistory() {
 
       // Table
       const sessionContent = document.createElement("div");
-      // ADD class='table-responsive' to the inner HTML string
-      sessionContent.innerHTML = `<div class="table-responsive"><table style="width:100%; font-size:13px; border-collapse: collapse;"><tbody id="rec-${date}-${sessionNum}"></tbody></table></div>`;
+      sessionContent.innerHTML = `<table style="width:100%; font-size:13px; border-collapse: collapse;"><tbody id="rec-${date}-${sessionNum}"></tbody></table>`;
       container.appendChild(sessionContent);
 
       const tbody = sessionContent.querySelector("tbody");
@@ -365,8 +362,8 @@ async function loadAttendanceHistory() {
 
         row.innerHTML = `
             <td style="padding:8px;">${s.firstname || ""} ${
-          s.lastname || ""
-        }</td>
+              s.lastname || ""
+            }</td>
             <td style="padding:8px;">${s.rollno || "N/A"}</td>
             <td style="padding:8px;"><span style="background:${statusColor}; padding:4px 8px; border-radius:4px;">${statusText}</span></td>
             <td style="padding:8px;"><button class="btn btn-small btn-info" onclick="openEditAttendanceModal(${
@@ -389,7 +386,7 @@ async function exportDateAttendance(date, classId) {
   if (!classInfo) return;
 
   const dateRecords = allAttendance.filter(
-    (r) => r.classId === classId && r.date === date
+    (r) => r.classId === classId && r.date === date,
   );
 
   if (dateRecords.length === 0) {
@@ -445,7 +442,7 @@ async function exportDateAttendance(date, classId) {
   // Use downloadCSV which will convert to ASCII
   downloadCSV(
     csvContent,
-    `attendance_${classInfo.code}_${date.replace(/-/g, "")}.csv`
+    `attendance_${classInfo.code}_${date.replace(/-/g, "")}.csv`,
   );
   showToast(`Exported attendance for ${date}`, "success");
 }
@@ -493,7 +490,7 @@ async function downloadHistoryCSV() {
 
   // Sort dates in descending order (most recent first)
   const sortedDates = Object.keys(dateGroups).sort(
-    (a, b) => new Date(b) - new Date(a)
+    (a, b) => new Date(b) - new Date(a),
   );
 
   let csvContent = "";
@@ -512,7 +509,7 @@ async function downloadHistoryCSV() {
         year: "numeric",
         month: "long",
         day: "numeric",
-      }
+      },
     )}\n`;
   }
 
@@ -590,10 +587,10 @@ async function downloadHistoryCSV() {
       // Calculate session totals
       const total = recordsForSession.length;
       const present = recordsForSession.filter(
-        (r) => r.status === "present"
+        (r) => r.status === "present",
       ).length;
       const absent = recordsForSession.filter(
-        (r) => r.status === "absent"
+        (r) => r.status === "absent",
       ).length;
       const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
 
@@ -624,10 +621,10 @@ async function downloadHistoryCSV() {
   // Add overall summary
   const overallTotal = classRecords.length;
   const overallPresent = classRecords.filter(
-    (r) => r.status === "present"
+    (r) => r.status === "present",
   ).length;
   const overallAbsent = classRecords.filter(
-    (r) => r.status === "absent"
+    (r) => r.status === "absent",
   ).length;
   const overallPercentage =
     overallTotal > 0 ? Math.round((overallPresent / overallTotal) * 100) : 0;
@@ -690,7 +687,7 @@ async function generateYearlyReport() {
   // 3. Find Classes Taught by This Faculty
   // Normalizing strings to ensure matches (trim + lowercase check)
   const myClasses = allClasses.filter(
-    (c) => c.faculty.trim().toLowerCase() === facultyName.trim().toLowerCase()
+    (c) => c.faculty.trim().toLowerCase() === facultyName.trim().toLowerCase(),
   );
 
   if (myClasses.length === 0) {
@@ -711,7 +708,7 @@ async function generateYearlyReport() {
 
     // A. Total Classes Held (Unique Date + Session combinations)
     const uniqueSessions = new Set(
-      classRecords.map((r) => `${r.date}-${r.session}`)
+      classRecords.map((r) => `${r.date}-${r.session}`),
     );
     const totalClassesHeld = uniqueSessions.size;
 
@@ -720,7 +717,7 @@ async function generateYearlyReport() {
     const activeStudentIds = new Set(classRecords.map((r) => r.studentid));
     // Method 2: Potential students (better for "Strength") -> Match Dept + Sem
     const potentialStudents = allStudents.filter(
-      (s) => s.department === cls.department && s.semester == cls.semester
+      (s) => s.department === cls.department && s.semester == cls.semester,
     );
     const totalStudents =
       potentialStudents.length > 0
@@ -729,7 +726,7 @@ async function generateYearlyReport() {
 
     // C. Average Strength (Average number of 'Present' students per session)
     const totalPresent = classRecords.filter(
-      (r) => r.status === "present"
+      (r) => r.status === "present",
     ).length;
 
     // Avoid division by zero
@@ -746,8 +743,8 @@ async function generateYearlyReport() {
       attendancePercentage >= 75
         ? "green"
         : attendancePercentage >= 50
-        ? "orange"
-        : "red";
+          ? "orange"
+          : "red";
 
     // E. Generate Row HTML
     htmlRows += `
@@ -760,8 +757,8 @@ async function generateYearlyReport() {
                     cls.name
                   }</div>
                   <div style="font-size:11px; color: #7f8c8d;">${cls.code} • ${
-      cls.department
-    }</div>
+                    cls.department
+                  }</div>
               </td>
               <td style="padding: 12px; text-align: center;">${totalStudents}</td>
               <td style="padding: 12px; text-align: center;">${totalClassesHeld}</td>
@@ -835,7 +832,7 @@ async function downloadSubjectAttendanceReportForId(classId) {
       const stat = studentStats[sid];
       const pct = Math.round((stat.p / stat.total) * 100);
       csvLines.push(
-        `${s.rollno},"${s.firstname} ${s.lastname}",${stat.total},${stat.p},${stat.a},${pct}%`
+        `${s.rollno},"${s.firstname} ${s.lastname}",${stat.total},${stat.p},${stat.a},${pct}%`,
       );
     }
   });
@@ -891,7 +888,7 @@ async function openEditAttendanceModal(attendanceId) {
 
   // Set the correct radio button
   document.querySelector(
-    `input[name="attendanceStatus"][value="${record.status}"]`
+    `input[name="attendanceStatus"][value="${record.status}"]`,
   ).checked = true;
 
   openModal("editAttendanceModal");
@@ -902,7 +899,7 @@ async function saveEditedAttendance(event) {
   event.preventDefault();
 
   const attendanceId = parseInt(
-    document.getElementById("editAttendanceId").value
+    document.getElementById("editAttendanceId").value,
   );
   const record = await getRecord("attendance", attendanceId);
 
@@ -912,7 +909,7 @@ async function saveEditedAttendance(event) {
   }
 
   const newStatus = document.querySelector(
-    'input[name="attendanceStatus"]:checked'
+    'input[name="attendanceStatus"]:checked',
   ).value;
   const notes = document.getElementById("editAttendanceNotes").value;
   const newSession =
@@ -938,7 +935,7 @@ async function saveEditedAttendance(event) {
 // Delete attendance record
 async function deleteAttendanceRecord() {
   const attendanceId = parseInt(
-    document.getElementById("editAttendanceId").value
+    document.getElementById("editAttendanceId").value,
   );
 
   showConfirm("Delete this attendance record permanently?", async function () {
@@ -995,17 +992,17 @@ async function downloadAttendanceReport() {
 
   // Sort dates in descending order
   const sortedDates = Object.keys(dateGroups).sort(
-    (a, b) => new Date(b) - new Date(a)
+    (a, b) => new Date(b) - new Date(a),
   );
 
   // Create CLEAN CSV - SAME FORMAT AS ATTENDANCE HISTORY
   let csvLines = [];
   csvLines.push(
-    "=================================================================="
+    "==================================================================",
   );
   csvLines.push(`ATTENDANCE REPORT - ${classInfo.code}: ${classInfo.name}`);
   csvLines.push(
-    `Department: ${classInfo.department}, Semester: ${classInfo.semester}`
+    `Department: ${classInfo.department}, Semester: ${classInfo.semester}`,
   );
   csvLines.push(`Faculty: ${classInfo.faculty}`);
   if (date) {
@@ -1013,7 +1010,7 @@ async function downloadAttendanceReport() {
   }
   csvLines.push(`Total Records: ${classRecords.length}`);
   csvLines.push(
-    "=================================================================="
+    "==================================================================",
   );
   csvLines.push("");
 
@@ -1034,7 +1031,7 @@ async function downloadAttendanceReport() {
       classRecords.length > 0
         ? Math.round((totalPresent / classRecords.length) * 100)
         : 0
-    }`
+    }`,
   );
   csvLines.push("");
   csvLines.push("");
@@ -1058,7 +1055,7 @@ async function downloadAttendanceReport() {
     // ADD LONG SEPARATOR BEFORE EACH DATE (except first one)
     if (dateIndex > 0) {
       csvLines.push(
-        "-------------------------------------------------------------------------------------------------------------"
+        "-------------------------------------------------------------------------------------------------------------",
       );
       csvLines.push("");
     }
@@ -1071,10 +1068,10 @@ async function downloadAttendanceReport() {
         day: "numeric",
       })} (${sortedSessions.length} session${
         sortedSessions.length > 1 ? "s" : ""
-      })`
+      })`,
     );
     csvLines.push(
-      "======================================================================"
+      "======================================================================",
     );
 
     sortedSessions.forEach((sessionNum, sessionIndex) => {
@@ -1082,7 +1079,7 @@ async function downloadAttendanceReport() {
 
       // ADD X SEPARATOR FOR SESSION
       csvLines.push(
-        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       );
       csvLines.push(`   Session ${sessionNum}`);
       csvLines.push("   " + "-".repeat(60));
@@ -1109,7 +1106,7 @@ async function downloadAttendanceReport() {
       });
 
       const present = sessionRecords.filter(
-        (r) => r.status === "present"
+        (r) => r.status === "present",
       ).length;
       const absent = sessionRecords.filter((r) => r.status === "absent").length;
       const percentage =
@@ -1117,44 +1114,44 @@ async function downloadAttendanceReport() {
           ? Math.round((present / sessionRecords.length) * 100)
           : 0;
       csvLines.push(
-        `   -- Session ${sessionNum} Summary: ${present} Present | ${absent} Absent | ${percentage}% --`
+        `   -- Session ${sessionNum} Summary: ${present} Present | ${absent} Absent | ${percentage}% --`,
       );
       csvLines.push("");
     });
 
     // Date summary
     const datePresent = recordsForDate.filter(
-      (r) => r.status === "present"
+      (r) => r.status === "present",
     ).length;
     const dateAbsent = recordsForDate.filter(
-      (r) => r.status === "absent"
+      (r) => r.status === "absent",
     ).length;
     const datePercentage =
       recordsForDate.length > 0
         ? Math.round((datePresent / recordsForDate.length) * 100)
         : 0;
     csvLines.push(
-      `   Date Summary: ${datePresent} Present | ${dateAbsent} Absent | ${datePercentage}% Attendance`
+      `   Date Summary: ${datePresent} Present | ${dateAbsent} Absent | ${datePercentage}% Attendance`,
     );
     csvLines.push(
-      "======================================================================"
+      "======================================================================",
     );
   });
 
   csvLines.push("");
   csvLines.push(
-    "=================================================================="
+    "==================================================================",
   );
   csvLines.push("OVERALL SUMMARY");
   csvLines.push(
-    "=================================================================="
+    "==================================================================",
   );
   csvLines.push(`Total Dates: ${sortedDates.length}`);
   csvLines.push(
     `Total Sessions: ${Object.values(dateGroups).reduce((sum, records) => {
       const sessions = new Set(records.map((r) => r.session || 1));
       return sum + sessions.size;
-    }, 0)}`
+    }, 0)}`,
   );
   csvLines.push(`Total Records: ${classRecords.length}`);
   csvLines.push(`Total Present: ${totalPresent}`);
@@ -1164,7 +1161,7 @@ async function downloadAttendanceReport() {
       classRecords.length > 0
         ? Math.round((totalPresent / classRecords.length) * 100)
         : 0
-    }%`
+    }%`,
   );
   csvLines.push(`Export Date: ${new Date().toLocaleString()}`);
 
@@ -1173,7 +1170,7 @@ async function downloadAttendanceReport() {
     csvContent,
     `attendance_report_${classInfo.code}_${
       date ? date.replace(/-/g, "") : "all"
-    }_${new Date().getTime()}.csv`
+    }_${new Date().getTime()}.csv`,
   );
   showToast(`Exported ${classRecords.length} attendance records`, "success");
 }
@@ -1203,7 +1200,7 @@ function addMultiSessionButton() {
 
   submitButton.parentNode.insertBefore(
     multiSessionBtn,
-    submitButton.nextSibling
+    submitButton.nextSibling,
   );
 }
 
@@ -1213,7 +1210,7 @@ async function markMultipleSessions() {
   const classId = parseInt(document.getElementById("facultyClassSelect").value);
   const date = document.getElementById("attendanceDate").value;
   const endSession = parseInt(
-    document.getElementById("attendanceSession").value
+    document.getElementById("attendanceSession").value,
   );
 
   if (!classId || !date || endSession < 1) {
@@ -1238,12 +1235,12 @@ async function markMultipleSessions() {
         // FIX: Using lowercase keys for filtering
         const existingForSession = allAttendance.filter(
           (r) =>
-            r.classid === classId && r.date === date && r.session === session
+            r.classid === classId && r.date === date && r.session === session,
         );
 
         // FIX: Map using lowercase 'studentid'
         const existingMap = new Map(
-          existingForSession.map((r) => [r.studentid, r])
+          existingForSession.map((r) => [r.studentid, r]),
         );
 
         const promises = [];
@@ -1283,15 +1280,17 @@ async function markMultipleSessions() {
       }
 
       showToast(
-        `Attendance saved for ${totalRecords} records across ${endSession} sessions!`
+        `Attendance saved for ${totalRecords} records across ${endSession} sessions!`,
       );
       if (typeof generateYearlyReport === "function") generateYearlyReport();
-    }
+    },
   );
 }
 
 // Load class students
 // attendance.js - Updated loadClassStudents function
+
+// attendance.js - Updated loadClassStudents (Multi-Branch + History Memory)
 
 async function loadClassStudents(dateOverride) {
   const classSelect = document.getElementById("facultyClassSelect");
@@ -1308,7 +1307,7 @@ async function loadClassStudents(dateOverride) {
     return;
   }
 
-  // 1. Fetch All Necessary Data (Students, Classes, and Attendance History)
+  // 1. Fetch All Necessary Data
   const [allStudents, allClasses, allAttendance] = await Promise.all([
     getAll("students"),
     getAll("classes"),
@@ -1318,19 +1317,24 @@ async function loadClassStudents(dateOverride) {
   const selectedClass = allClasses.find((c) => c.id === classId);
   if (!selectedClass) return;
 
-  // 2. Get "Standard" Batch Students (Matching Dept & Semester)
+  // --- NEW: MULTI-BRANCH LOGIC ---
+  // Split the class departments into an array (e.g., "Civil,Mechanical" -> ["Civil", "Mechanical"])
+  const targetDepartments = selectedClass.department.split(",");
+
+  // 2. Get "Standard" Batch Students
+  // (Match Semester AND belong to ANY of the target departments)
   const standardStudents = allStudents.filter(
     (s) =>
       s.semester == selectedClass.semester &&
-      s.department === selectedClass.department
+      targetDepartments.includes(s.department),
   );
 
   // 3. Get "History" Students (Anyone previously marked in this class)
-  // This ensures electives/backlog students stick to the list once added.
+  // This ensures electives/backlog students stick to the list once added manually.
   const historyRecords = allAttendance.filter((r) => r.classid == classId);
   const historyStudentIds = new Set(historyRecords.map((r) => r.studentid));
   const historyStudents = allStudents.filter((s) =>
-    historyStudentIds.has(s.id)
+    historyStudentIds.has(s.id),
   );
 
   // 4. Merge Lists (Standard + History) & Remove Duplicates
@@ -1345,15 +1349,15 @@ async function loadClassStudents(dateOverride) {
   // Convert back to array and Sort by Roll No
   const finalStudentList = Array.from(studentMap.values());
   finalStudentList.sort((a, b) =>
-    (a.rollno || "").localeCompare(b.rollno || "")
+    (a.rollno || "").localeCompare(b.rollno || ""),
   );
 
   // 5. Get Attendance Status for the CURRENT Session (to show green/red toggle)
   const currentSessionRecords = allAttendance.filter(
-    (r) => r.classid == classId && r.date === date && r.session == session
+    (r) => r.classid == classId && r.date === date && r.session == session,
   );
   const statusMap = new Map(
-    currentSessionRecords.map((r) => [r.studentid, r.status])
+    currentSessionRecords.map((r) => [r.studentid, r.status]),
   );
 
   // 6. Render the Grid
@@ -1380,8 +1384,6 @@ async function loadClassStudents(dateOverride) {
 // Submit attendance
 // Submit attendance (Fixed: Detects existing records correctly)
 // Submit attendance (Fixed: Correctly updates existing records)
-// attendance.js - Updated submitAttendance with Real-Time Progress
-
 async function submitAttendance() {
   const classSelect = document.getElementById("facultyClassSelect");
   const classId = parseInt(classSelect.value);
@@ -1394,95 +1396,67 @@ async function submitAttendance() {
   }
 
   const checkboxes = document.querySelectorAll(".attendance-checkbox");
-  const totalStudents = checkboxes.length;
-
-  if (totalStudents === 0) {
+  if (checkboxes.length === 0) {
     showToast("No students to mark", "error");
     return;
   }
 
-  // 1. INITIALIZE PROGRESS UI
-  showProgressModal("Saving Attendance");
-  updateProgress(0, totalStudents, "Checking existing records...");
+  // 1. Fetch all attendance to check for duplicates
+  const allAttendance = await getAll("attendance");
 
-  try {
-    // 2. FETCH EXISTING DATA
-    const allAttendance = await getAll("attendance");
+  // FIX: Using lowercase keys (classid, date, session) to find existing records
+  const existingForSession = allAttendance.filter(
+    (r) => r.classid === classId && r.date === date && r.session === session,
+  );
 
-    const existingForSession = allAttendance.filter(
-      (r) => r.classid === classId && r.date === date && r.session === session
-    );
-    const existingMap = new Map(
-      existingForSession.map((r) => [r.studentid, r])
-    );
+  // FIX: Map using lowercase 'studentid' for quick lookup
+  const existingMap = new Map(existingForSession.map((r) => [r.studentid, r]));
 
-    const promises = [];
-    let processedCount = 0;
+  const promises = [];
 
-    // 3. HELPER: Track progress for each database call
-    const trackProgress = (dbPromise) => {
-      return dbPromise.then((res) => {
-        processedCount++;
-        // Update the visual bar with "Marking: 5 / 60" style text
-        updateProgress(
-          processedCount,
-          totalStudents,
-          `Marking: ${processedCount} / ${totalStudents}`
-        );
-        return res;
-      });
+  checkboxes.forEach((cb) => {
+    const studentId = parseInt(cb.value);
+    const status = cb.checked ? "present" : "absent";
+
+    // FIX: Object keys must be lowercase for Supabase
+    const record = {
+      classid: classId,
+      studentid: studentId,
+      date: date,
+      session: session,
+      status: status,
+      notes: `Session ${session}`,
+      createdat: new Date().toISOString(),
     };
 
-    // 4. QUEUE UPDATES
-    checkboxes.forEach((cb) => {
-      const studentId = parseInt(cb.value);
-      const status = cb.checked ? "present" : "absent";
+    // Check if we already have a record for this student
+    const existing = existingMap.get(studentId);
 
-      const record = {
-        classid: classId,
-        studentid: studentId,
-        date: date,
-        session: session,
-        status: status,
-        notes: `Session ${session}`,
-        createdat: new Date().toISOString(),
-      };
+    if (existing) {
+      // ✅ UPDATE existing record (Attach the ID)
+      record.id = existing.id;
+      // Keep original created date, update the modified date
+      if (existing.createdat) record.createdat = existing.createdat;
+      record.updatedat = new Date().toISOString();
 
-      const existing = existingMap.get(studentId);
-      let action;
+      promises.push(updateRecord("attendance", record));
+    } else {
+      // ✅ CREATE new record
+      promises.push(addRecord("attendance", record));
+    }
+  });
 
-      if (existing) {
-        // Update existing
-        record.id = existing.id;
-        if (existing.createdat) record.createdat = existing.createdat;
-        record.updatedat = new Date().toISOString();
-        action = updateRecord("attendance", record);
-      } else {
-        // Create new
-        action = addRecord("attendance", record);
-      }
-
-      // Wrap the action with our progress tracker
-      promises.push(trackProgress(action));
-    });
-
-    // 5. EXECUTE ALL
+  try {
     await Promise.all(promises);
-
-    // Short delay to let user see "100%" before closing
-    await new Promise((r) => setTimeout(r, 400));
-
-    hideProgressModal();
-
-    // 6. FINAL SUCCESS MESSAGE
     showToast(
-      `Attendance saved for ${totalStudents} students in Session ${session}!`
+      `Attendance saved for ${checkboxes.length} students in Session ${session}!`,
     );
-
     if (typeof generateYearlyReport === "function") generateYearlyReport();
+
+    // Optional: Uncheck boxes after saving
+    // checkboxes.forEach((cb) => (cb.checked = false));
   } catch (e) {
     console.error(e);
-    hideProgressModal();
     showToast("Error saving attendance", "error");
   }
 }
@@ -1546,7 +1520,7 @@ async function saveBulkAttendance() {
   let applyToAll = false;
   if (maxSessions > 1) {
     applyToAll = confirm(
-      `You have ${maxSessions} sessions active.\nClick OK to apply to ALL sessions (1-${maxSessions}).\nClick CANCEL to save only for Session ${targetSession}.`
+      `You have ${maxSessions} sessions active.\nClick OK to apply to ALL sessions (1-${maxSessions}).\nClick CANCEL to save only for Session ${targetSession}.`,
     );
   }
 
@@ -1570,10 +1544,10 @@ async function saveBulkAttendance() {
 
     const existingForSession = allAttendance.filter(
       (r) =>
-        r.classid == classId && r.date === date && r.session == currentSession
+        r.classid == classId && r.date === date && r.session == currentSession,
     );
     const existingMap = new Map(
-      existingForSession.map((r) => [r.studentid, r])
+      existingForSession.map((r) => [r.studentid, r]),
     );
 
     const promises = [];
@@ -1582,7 +1556,7 @@ async function saveBulkAttendance() {
       // FIX: Loose equality (==) allows string vs number matching
       // Also trims both sides to ensure no whitespace issues
       const student = allStudents.find(
-        (s) => String(s.rollno).trim() == String(item.rollNo).trim()
+        (s) => String(s.rollno).trim() == String(item.rollNo).trim(),
       );
 
       if (student) {
@@ -1608,7 +1582,7 @@ async function saveBulkAttendance() {
         }
       } else {
         console.warn(
-          `Skipped: Roll No "${item.rollNo}" not found in database.`
+          `Skipped: Roll No "${item.rollNo}" not found in database.`,
         );
       }
     }
@@ -1621,7 +1595,7 @@ async function saveBulkAttendance() {
 
   showToast(
     `Processed ${successCount} records across ${sessionsProcessed} session(s)`,
-    "success"
+    "success",
   );
   closeModal("bulkAttendanceModal");
   if (typeof generateYearlyReport === "function") generateYearlyReport();
@@ -1660,7 +1634,7 @@ async function addBatchToSession() {
   }
   const allStudents = await getAll("students");
   const targetStudents = allStudents.filter(
-    (s) => s.department === branch && s.semester === sem
+    (s) => s.department === branch && s.semester === sem,
   );
   if (targetStudents.length === 0) {
     showToast("No students found for this criteria", "error");
@@ -1676,7 +1650,7 @@ async function addBatchToSession() {
   if (addedCount > 0) {
     showToast(
       `Added ${addedCount} students from ${branch} - Sem ${sem}`,
-      "success"
+      "success",
     );
     document.getElementById("studentGridContainer").style.display = "block";
   } else {
@@ -1782,7 +1756,7 @@ async function viewStudentAttendance(studentId) {
 
   // FIX: Using lowercase 'studentid'
   const studentAttendance = allAttendance.filter(
-    (r) => r.studentid === studentId
+    (r) => r.studentid === studentId,
   );
 
   const container = document.getElementById("detailAttendanceList");
@@ -1864,7 +1838,7 @@ async function exportStudentAttendance(
   studentId,
   classId,
   rollNo,
-  studentName
+  studentName,
 ) {
   const [attendance, classes] = await Promise.all([
     getAll("attendance"),
@@ -1873,7 +1847,7 @@ async function exportStudentAttendance(
 
   const currentClass = classes.find((c) => c.id === classId);
   const studentAttendance = attendance.filter(
-    (r) => r.studentId === studentId && r.classId === classId
+    (r) => r.studentId === studentId && r.classId === classId,
   );
 
   if (studentAttendance.length === 0) {
@@ -1903,7 +1877,7 @@ async function exportStudentAttendance(
   // Add summary
   const total = studentAttendance.length;
   const present = studentAttendance.filter(
-    (r) => r.status === "present"
+    (r) => r.status === "present",
   ).length;
   const absent = studentAttendance.filter((r) => r.status === "absent").length;
   const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
@@ -1918,7 +1892,7 @@ async function exportStudentAttendance(
   // Download CSV
   downloadCSV(
     csvContent,
-    `attendance_${rollNo}_${currentClass.code}_${new Date().getTime()}.csv`
+    `attendance_${rollNo}_${currentClass.code}_${new Date().getTime()}.csv`,
   );
   showToast(`Exported ${total} attendance records for ${rollNo}`, "success");
 }
@@ -2000,7 +1974,7 @@ async function downloadSubjectAttendanceReport() {
   csvLines.push("STUDENT ATTENDANCE SUMMARY");
   csvLines.push("");
   csvLines.push(
-    "Roll No,Student Name,Total Classes,Attended,Absent,Attendance %,Status"
+    "Roll No,Student Name,Total Classes,Attended,Absent,Attendance %,Status",
   );
 
   let totalStudents = 0;
@@ -2033,7 +2007,7 @@ async function downloadSubjectAttendanceReport() {
 
     // FIX: Using lowercase 'rollno', 'firstname', 'lastname'
     csvLines.push(
-      `${student.rollno},${student.firstname} ${student.lastname},${stats.total},${stats.present},${stats.absent},${percentage}%,${status}`
+      `${student.rollno},${student.firstname} ${student.lastname},${stats.total},${stats.present},${stats.absent},${percentage}%,${status}`,
     );
   });
 
@@ -2042,7 +2016,7 @@ async function downloadSubjectAttendanceReport() {
   csvLines.push("SUMMARY STATISTICS");
   csvLines.push(`Total Students,${totalStudents}`);
   csvLines.push(
-    `Total Classes Held,${classRecords.length / totalStudents || 0}`
+    `Total Classes Held,${classRecords.length / totalStudents || 0}`,
   );
   csvLines.push(`Total Attendance Records,${classRecords.length}`);
   csvLines.push(`Total Present,${totalPresent}`);
@@ -2052,7 +2026,7 @@ async function downloadSubjectAttendanceReport() {
       classRecords.length > 0
         ? Math.round((totalPresent / classRecords.length) * 100)
         : 0
-    }%`
+    }%`,
   );
   csvLines.push(`Students Above 75%,${above75}`);
   csvLines.push(`Students Below 75%,${below75}`);
@@ -2083,7 +2057,7 @@ async function loadAdminAttendanceHistory() {
 
   let dateType = "all";
   const dateRadio = document.querySelector(
-    'input[name="dateFilterType"]:checked'
+    'input[name="dateFilterType"]:checked',
   );
   if (dateRadio) dateType = dateRadio.value;
 
@@ -2111,7 +2085,7 @@ async function loadAdminAttendanceHistory() {
 
   if (statusFilter !== "all") {
     filteredAttendance = filteredAttendance.filter(
-      (r) => r.status === statusFilter
+      (r) => r.status === statusFilter,
     );
   }
 
@@ -2173,11 +2147,11 @@ async function loadAdminAttendanceHistory() {
         return (b.student.rollno || "").localeCompare(a.student.rollno || "");
       case "name_asc":
         return (a.student.firstname || "").localeCompare(
-          b.student.firstname || ""
+          b.student.firstname || "",
         );
       case "name_desc":
         return (b.student.firstname || "").localeCompare(
-          a.student.firstname || ""
+          a.student.firstname || "",
         );
       default:
         return 0;
@@ -2272,7 +2246,7 @@ function clearAdminFilters() {
   document.getElementById("adminClassFilter").value = "all";
 
   const allDateRadio = document.querySelector(
-    'input[name="dateFilterType"][value="all"]'
+    'input[name="dateFilterType"][value="all"]',
   );
   if (allDateRadio) {
     allDateRadio.checked = true;
@@ -2330,7 +2304,7 @@ async function exportAdminHistory(format) {
 
   let dateType = "all";
   const dateRadio = document.querySelector(
-    'input[name="dateFilterType"]:checked'
+    'input[name="dateFilterType"]:checked',
   );
   if (dateRadio) dateType = dateRadio.value;
 
@@ -2352,7 +2326,7 @@ async function exportAdminHistory(format) {
     if (dateType === "range") {
       if (dateFrom)
         filteredAttendance = filteredAttendance.filter(
-          (r) => r.date >= dateFrom
+          (r) => r.date >= dateFrom,
         );
       if (dateTo)
         filteredAttendance = filteredAttendance.filter((r) => r.date <= dateTo);
@@ -2360,7 +2334,7 @@ async function exportAdminHistory(format) {
 
     if (statusFilter !== "all") {
       filteredAttendance = filteredAttendance.filter(
-        (r) => r.status === statusFilter
+        (r) => r.status === statusFilter,
       );
     }
 
@@ -2782,7 +2756,7 @@ function injectAdminDeleteButton() {
     document.querySelector("#adminPanel .export-buttons") ||
     // Fallback: Find the 'Export JSON' button and grab its parent
     Array.from(document.querySelectorAll("button")).find((b) =>
-      b.textContent.includes("Export JSON")
+      b.textContent.includes("Export JSON"),
     )?.parentNode;
 
   if (!exportGroup) return;
@@ -2811,7 +2785,7 @@ async function deleteAdminAttendance() {
   if (classId === "all") {
     showToast(
       "⚠️ Safety Lock: Please select a specific 'Class' to delete.",
-      "warning"
+      "warning",
     );
     return;
   }
@@ -2826,7 +2800,7 @@ async function deleteAdminAttendance() {
   // Filter by Date Range (if active)
   if (dateType === "range" && dateFrom && dateTo) {
     recordsToDelete = recordsToDelete.filter(
-      (r) => r.date >= dateFrom && r.date <= dateTo
+      (r) => r.date >= dateFrom && r.date <= dateTo,
     );
   }
 
@@ -2836,19 +2810,15 @@ async function deleteAdminAttendance() {
   }
 
   // --- STEP 3: SECURITY PROMPT ---
-  // --- STEP 3: SECURITY PROMPT ---
-  const confirmMsg = `⚠️ DANGER ZONE ⚠️\n\nYou are about to DELETE ${recordsToDelete.length} attendance records.\n\nFilters Applied:\n- Class ID: ${classId}\n- Date Mode: ${dateType}\n\nThis action CANNOT be undone.\n\nType "DELETE" to confirm:`;
+  const confirmMsg = `⚠️ DANGER ZONE ⚠️\n\nYou are about to DELETE ${recordsToDelete.length} attendance records.\n\nFilters Applied:\n- Class ID: ${classId}\n- Date Mode: ${dateType}\n\nThis action CANNOT be undone.\n\nEnter ADMIN PASSWORD to confirm:`;
 
-  const userInput = prompt(confirmMsg);
+  const password = prompt(confirmMsg);
 
-  if (userInput === null) return; // User cancelled
+  if (password === null) return; // User cancelled
 
-  // Verify Confirmation Text (Replaces ADMIN_PASSWORD check)
-  if (userInput !== "DELETE") {
-    showToast(
-      "❌ Confirmation failed! You must type 'DELETE' exactly.",
-      "error"
-    );
+  // Verify Password (ADMIN_PASSWORD from config.js)
+  if (password !== ADMIN_PASSWORD) {
+    showToast("❌ Incorrect Password! Action Denied.", "error");
     return;
   }
 
@@ -2857,18 +2827,18 @@ async function deleteAdminAttendance() {
 
   showToast(
     `Deleting ${recordsToDelete.length} records... Please wait.`,
-    "info"
+    "info",
   );
 
   try {
     const deletePromises = recordsToDelete.map((r) =>
-      deleteRecord("attendance", r.id)
+      deleteRecord("attendance", r.id),
     );
     await Promise.all(deletePromises);
 
     showToast(
       `✅ Successfully deleted ${recordsToDelete.length} records.`,
-      "success"
+      "success",
     );
 
     // Refresh the table to show empty results
@@ -2926,7 +2896,7 @@ async function handleStudentUpload(event) {
       updateProgress(
         i - startIdx + 1,
         totalLines,
-        `Processing Roll No: ${parts[0] || "..."}`
+        `Processing Roll No: ${parts[0] || "..."}`,
       );
 
       // Small delay to let UI render the progress bar
@@ -2964,7 +2934,7 @@ async function handleStudentUpload(event) {
     if (typeof showToast === "function") {
       showToast(
         `Imported ${success} students. ${errors} duplicates/errors.`,
-        success > 0 ? "success" : "warning"
+        success > 0 ? "success" : "warning",
       );
     }
     event.target.value = "";
@@ -2998,7 +2968,7 @@ async function handleFacultyUpload(event) {
       updateProgress(
         i - startIdx + 1,
         totalLines,
-        `Processing Faculty: ${parts[0] || "..."}`
+        `Processing Faculty: ${parts[0] || "..."}`,
       );
       await new Promise((r) => setTimeout(r, 10));
 
@@ -3034,7 +3004,7 @@ async function handleFacultyUpload(event) {
     if (typeof showToast === "function") {
       showToast(
         `Imported ${success} faculty members. ${errors} duplicates/errors.`,
-        success > 0 ? "success" : "warning"
+        success > 0 ? "success" : "warning",
       );
     }
     event.target.value = "";
@@ -3068,7 +3038,7 @@ async function handleClassesUpload(event) {
       updateProgress(
         i - startIdx + 1,
         totalLines,
-        `Processing Subject: ${parts[0] || "..."}`
+        `Processing Subject: ${parts[0] || "..."}`,
       );
       await new Promise((r) => setTimeout(r, 10));
 
@@ -3104,7 +3074,7 @@ async function handleClassesUpload(event) {
     if (typeof showToast === "function") {
       showToast(
         `Imported ${success} classes. ${errors} duplicates/errors.`,
-        success > 0 ? "success" : "warning"
+        success > 0 ? "success" : "warning",
       );
     }
     event.target.value = "";
@@ -3166,7 +3136,7 @@ async function handleFacultyUpload(event) {
     if (typeof showToast === "function") {
       showToast(
         `Imported ${success} faculty members. ${errors} duplicates/errors.`,
-        success > 0 ? "success" : "warning"
+        success > 0 ? "success" : "warning",
       );
     }
     event.target.value = "";
@@ -3229,7 +3199,7 @@ async function handleClassesUpload(event) {
     if (typeof showToast === "function") {
       showToast(
         `Imported ${success} classes. ${errors} duplicates/errors.`,
-        success > 0 ? "success" : "warning"
+        success > 0 ? "success" : "warning",
       );
     }
     event.target.value = "";
