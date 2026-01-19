@@ -17,7 +17,7 @@ async function populateFacultyMarksDropdown() {
   const facultyName = `${currentUser.firstname} ${currentUser.lastname}`;
   // Loose comparison for strings to avoid case/space issues
   const myClasses = classes.filter(
-    (c) => c.faculty.trim().toLowerCase() === facultyName.trim().toLowerCase()
+    (c) => c.faculty.trim().toLowerCase() === facultyName.trim().toLowerCase(),
   );
 
   myClasses.forEach((cls) => {
@@ -35,9 +35,11 @@ async function populateFacultyMarksDropdown() {
 
 // marks.js - Updated loadFacultyMarksTable function
 
+// marks.js - Updated loadFacultyMarksTable (Multi-Branch Support)
+
 async function loadFacultyMarksTable() {
   const classId = parseInt(
-    document.getElementById("facultyMarksClassSelect").value
+    document.getElementById("facultyMarksClassSelect").value,
   );
   const container = document.getElementById("marksEntryContainer");
   const tbody = document.getElementById("facultyMarksBody");
@@ -53,11 +55,11 @@ async function loadFacultyMarksTable() {
   }
 
   tbody.innerHTML =
-    '<tr><td colspan="6" style="text-align:center;">Loading students from attendance records...</td></tr>';
+    '<tr><td colspan="6" style="text-align:center;">Loading students...</td></tr>';
   container.style.display = "block";
 
   try {
-    // 1. Fetch necessary data: Students, Classes, Marks, AND Attendance
+    // 1. Fetch necessary data
     const [allStudents, allClasses, allMarks, allAttendance] =
       await Promise.all([
         getAll("students"),
@@ -67,46 +69,43 @@ async function loadFacultyMarksTable() {
       ]);
 
     const cls = allClasses.find((c) => c.id === classId);
+    if (!cls) return;
 
     // --- LOAD SAVED MAX MARKS STRUCTURE ---
-    if (cls) {
-      maxMidInput.value =
-        cls.max_midsem !== undefined && cls.max_midsem !== null
-          ? cls.max_midsem
-          : 20;
-      maxAssInput.value =
-        cls.max_assignment !== undefined && cls.max_assignment !== null
-          ? cls.max_assignment
-          : 10;
-      maxAttInput.value =
-        cls.max_attendance !== undefined && cls.max_attendance !== null
-          ? cls.max_attendance
-          : 10;
-    }
+    maxMidInput.value =
+      cls.max_midsem !== undefined && cls.max_midsem !== null
+        ? cls.max_midsem
+        : 20;
+    maxAssInput.value =
+      cls.max_assignment !== undefined && cls.max_assignment !== null
+        ? cls.max_assignment
+        : 10;
+    maxAttInput.value =
+      cls.max_attendance !== undefined && cls.max_attendance !== null
+        ? cls.max_attendance
+        : 10;
 
-    // --- NEW LOGIC: FILTER STUDENTS BY ATTENDANCE ---
+    // --- NEW LOGIC: MULTI-BRANCH FILTERING ---
 
-    // 2. Find all attendance records for this specific class
-    // We use strict filtering by classid to ensure we only get relevant students
-    const classAttendance = allAttendance.filter((r) => r.classid === classId);
+    // 1. Split the class departments into an array (e.g., "Civil,Mechanical")
+    const targetDepartments = cls.department.split(",");
 
-    // 3. Extract Unique Student IDs using a Set
-    const uniqueStudentIds = new Set(classAttendance.map((r) => r.studentid));
+    // 2. Filter students: Match Semester AND (Department is in the list)
+    const classStudents = allStudents.filter(
+      (s) =>
+        s.semester == cls.semester && targetDepartments.includes(s.department),
+    );
 
-    // 4. Filter the main student list to only include these IDs
-    let classStudents = allStudents.filter((s) => uniqueStudentIds.has(s.id));
-
-    // Fallback: If no attendance exists, warn the user
     if (classStudents.length === 0) {
       tbody.innerHTML =
-        '<tr><td colspan="6" style="text-align:center;">No students found in attendance records for this class.<br><small style="color:gray">Please mark attendance for at least one session to populate this list.</small></td></tr>';
+        '<tr><td colspan="6" style="text-align:center;">No students found for these branches/semester.</td></tr>';
       return;
     }
     // ------------------------------------------------
 
     // Sort by Roll No
     classStudents.sort((a, b) =>
-      (a.rollno || "").localeCompare(b.rollno || "")
+      (a.rollno || "").localeCompare(b.rollno || ""),
     );
 
     // Filter existing marks for this class to pre-fill inputs
@@ -116,6 +115,7 @@ async function loadFacultyMarksTable() {
     tbody.innerHTML = "";
 
     classStudents.forEach((student) => {
+      // Get existing marks OR default to 0
       const marks = marksMap.get(student.id) || {
         midsem: 0,
         assignment: 0,
@@ -157,7 +157,7 @@ async function loadFacultyMarksTable() {
 // 2. ADD THIS NEW FUNCTION (Paste anywhere in marks.js)
 async function saveMaxMarksConfiguration() {
   const classId = parseInt(
-    document.getElementById("facultyMarksClassSelect").value
+    document.getElementById("facultyMarksClassSelect").value,
   );
 
   if (!classId) {
@@ -231,7 +231,7 @@ function recalculateAllTotals() {
 
 async function saveInternalMarks() {
   const classId = parseInt(
-    document.getElementById("facultyMarksClassSelect").value
+    document.getElementById("facultyMarksClassSelect").value,
   );
   if (!classId) return;
 
@@ -241,7 +241,7 @@ async function saveInternalMarks() {
   const allMarks = await getAll("internal_marks");
 
   const existingMarksMap = new Map(
-    allMarks.filter((m) => m.classid === classId).map((m) => [m.studentid, m])
+    allMarks.filter((m) => m.classid === classId).map((m) => [m.studentid, m]),
   );
 
   const promises = [];
@@ -356,7 +356,7 @@ async function populateAdminMarksClassDropdown() {
   const yearFilter = document.getElementById("adminMarksYearFilter").value;
   const branchFilter = document.getElementById("adminMarksBranchFilter").value;
   const semesterFilter = document.getElementById(
-    "adminMarksSemesterFilter"
+    "adminMarksSemesterFilter",
   ).value;
   const classSelect = document.getElementById("adminMarksClassFilter");
 
@@ -414,7 +414,7 @@ async function loadAdminMarksTable() {
   const yearFilter = document.getElementById("adminMarksYearFilter").value;
   const branchFilter = document.getElementById("adminMarksBranchFilter").value;
   const semesterFilter = document.getElementById(
-    "adminMarksSemesterFilter"
+    "adminMarksSemesterFilter",
   ).value;
   const classFilter = document.getElementById("adminMarksClassFilter").value;
   const sortBy = document.getElementById("adminMarksSortBy").value;
@@ -463,7 +463,7 @@ async function loadAdminMarksTable() {
           return (a.student.rollno || "").localeCompare(b.student.rollno || "");
         case "name_asc":
           return (a.student.firstname || "").localeCompare(
-            b.student.firstname || ""
+            b.student.firstname || "",
           );
         default:
           return 0;
@@ -472,9 +472,8 @@ async function loadAdminMarksTable() {
 
     // Render
     tbody.innerHTML = "";
-    document.getElementById(
-      "adminMarksCount"
-    ).textContent = `(${displayData.length})`;
+    document.getElementById("adminMarksCount").textContent =
+      `(${displayData.length})`;
 
     if (displayData.length === 0) {
       tbody.innerHTML =
@@ -533,7 +532,7 @@ async function exportInternalMarks(format) {
   const yearFilter = document.getElementById("adminMarksYearFilter").value;
   const branchFilter = document.getElementById("adminMarksBranchFilter").value;
   const semesterFilter = document.getElementById(
-    "adminMarksSemesterFilter"
+    "adminMarksSemesterFilter",
   ).value;
 
   let reportData = [];
@@ -599,7 +598,7 @@ async function exportInternalMarks(format) {
       csvContent,
       selectedClass
         ? `Marks_${selectedClass.code}.csv`
-        : `Marks_Consolidated.csv`
+        : `Marks_Consolidated.csv`,
     );
   } else if (format === "json") {
     const jsonData = {
@@ -635,7 +634,7 @@ async function exportInternalMarks(format) {
 
 async function downloadFacultyMarksReport() {
   const classId = parseInt(
-    document.getElementById("facultyMarksClassSelect").value
+    document.getElementById("facultyMarksClassSelect").value,
   );
 
   if (!classId) {
@@ -697,7 +696,7 @@ async function downloadFacultyMarksReport() {
   const highest = Math.max(...totals);
   const lowest = Math.min(...totals);
   const average = (totals.reduce((a, b) => a + b, 0) / totals.length).toFixed(
-    1
+    1,
   );
 
   // 6. Generate HTML Content for PDF
