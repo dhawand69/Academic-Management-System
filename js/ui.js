@@ -1,3 +1,5 @@
+// ui.js - User Interface Logic & Event Handlers
+
 let showArchivedClasses = false;
 
 if (typeof activeClassFilter === "undefined") {
@@ -278,8 +280,9 @@ function autoFillStudentDetails() {
   }
 }
 
-// Load Students Table (Fixed: Logic Bug Solved)
-// FIXED loadStudents: Adds Roll No Sorting + Fixes "0 Students" bug
+// =============================================
+// LOAD STUDENTS (FIXED: STRICT BRANCH FILTERING)
+// =============================================
 async function loadStudents() {
   const allStudents = await getAll("students");
   const tbody = document.getElementById("usersTableBody");
@@ -288,26 +291,35 @@ async function loadStudents() {
 
   tbody.innerHTML = "";
 
+  // 1. Filter Students
   const displayedStudents = allStudents.filter((student) => {
     const sem = parseInt(student.semester) || 1;
     const year = Math.ceil(sem / 2);
 
+    // Filter by Year
     if (activeStudentFilter.year !== "all" && year != activeStudentFilter.year)
       return false;
+      
+    // Filter by Semester
     if (
       activeStudentFilter.semester !== null &&
       sem != activeStudentFilter.semester
     )
       return false;
+      
+    // Filter by Branch (STRICT CHECK FIX)
     if (activeStudentFilter.branch !== "all") {
-      const sDept = (student.department || "").toLowerCase().trim();
-      const fDept = activeStudentFilter.branch.toLowerCase().trim();
-      if (!sDept.includes(fDept) && !fDept.includes(sDept)) return false;
+      const sDept = (student.department || "").trim();
+      const fDept = activeStudentFilter.branch.trim();
+      
+      // Strict equality (case-insensitive) to prevent mixing similar branches
+      if (sDept.toLowerCase() !== fDept.toLowerCase()) return false;
     }
+    
     return true;
   });
 
-  // Sort
+  // 2. Sort by Roll No
   displayedStudents.sort((a, b) => {
     const rA = String(a.rollno || a.rollNo || "").trim();
     const rB = String(b.rollno || b.rollNo || "").trim();
@@ -317,6 +329,7 @@ async function loadStudents() {
     });
   });
 
+  // 3. Render Table
   if (displayedStudents.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#999;">No students found matching filters.</td></tr>`;
     if (bulkContainer) bulkContainer.style.display = "none";
@@ -333,8 +346,8 @@ async function loadStudents() {
             <td><input type="checkbox" class="student-checkbox" value="${
               student.id
             }" onchange="handleCheckboxChange(this)" ${
-              isSelected ? "checked" : ""
-            }></td>
+        isSelected ? "checked" : ""
+      }></td>
             <td style="cursor: pointer; color: var(--color-primary); font-weight:bold;" onclick="viewStudentAttendance(${
               student.id
             })">${roll}</td>
@@ -357,9 +370,14 @@ async function loadStudents() {
     if (bulkContainer) bulkContainer.style.display = "flex";
   }
 
+  // 4. Update UI Counts
   if (countLabel) countLabel.textContent = `(${displayedStudents.length})`;
   if (typeof updateSelectionUI === "function") updateSelectionUI();
+  
+  // Make displayedStudents available globally for bulk actions
+  window.displayedStudents = displayedStudents;
 }
+
 async function deleteStudent(id) {
   showConfirm("Delete this student?", async function () {
     await deleteRecord("students", id);
@@ -1064,10 +1082,6 @@ async function loadClasses() {
     }
 
     // B. Branch Filter
-    // Inside loadClasses function in ui.js
-    // Find the filtering logic section:
-
-    // B. Branch Filter
     if (branchFilter !== "all") {
       // Check if the comma-separated string contains the filter
       if (!cls.department.includes(branchFilter)) return false;
@@ -1419,7 +1433,6 @@ function toggleDateRange() {
   }
 }
 
-// REPLACE THIS FUNCTION IN ui.js
 function toggleArchivedView() {
   showArchivedClasses = !showArchivedClasses;
 
