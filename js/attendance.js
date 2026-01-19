@@ -2773,6 +2773,8 @@ function injectAdminDeleteButton() {
 }
 
 // 2. Handle Secure Deletion
+// attendance.js - Fix for deleteAdminAttendance
+
 async function deleteAdminAttendance() {
   // --- STEP 1: GET FILTERS ---
   const classId = document.getElementById("adminClassFilter").value;
@@ -2810,22 +2812,21 @@ async function deleteAdminAttendance() {
     return;
   }
 
-  // --- STEP 3: SECURITY PROMPT ---
-  const confirmMsg = `⚠️ DANGER ZONE ⚠️\n\nYou are about to DELETE ${recordsToDelete.length} attendance records.\n\nFilters Applied:\n- Class ID: ${classId}\n- Date Mode: ${dateType}\n\nThis action CANNOT be undone.\n\nEnter ADMIN PASSWORD to confirm:`;
+  // --- STEP 3: SECURITY PROMPT (UPDATED) ---
+  // Replaced ADMIN_PASSWORD with a text confirmation pattern
+  const confirmMsg = `⚠️ DANGER ZONE ⚠️\n\nYou are about to DELETE ${recordsToDelete.length} attendance records.\n\nFilters Applied:\n- Class ID: ${classId}\n- Date Mode: ${dateType}\n\nThis action CANNOT be undone.\n\nType "DELETE" to confirm:`;
 
-  const password = prompt(confirmMsg);
+  const userInput = prompt(confirmMsg);
 
-  if (password === null) return; // User cancelled
+  if (userInput === null) return; // User cancelled
 
-  // Verify Password (ADMIN_PASSWORD from config.js)
-  if (password !== ADMIN_PASSWORD) {
-    showToast("❌ Incorrect Password! Action Denied.", "error");
+  // Check if they typed "DELETE" exactly
+  if (userInput !== "DELETE") {
+    showToast("❌ Confirmation failed. Action Denied.", "error");
     return;
   }
 
   // --- STEP 4: EXECUTE DELETE ---
-  if (!confirm("Are you absolutely sure?")) return;
-
   showToast(
     `Deleting ${recordsToDelete.length} records... Please wait.`,
     "info",
