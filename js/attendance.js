@@ -1185,7 +1185,7 @@ async function downloadAttendanceReport() {
 // Add multi-session button (Fixed: No Duplicates)
 function addMultiSessionButton() {
   const existingBtn = document.getElementById("multiSessionBtn");
-  if (existingBtn) existingBtn.remove();
+  if (existingBtn) existingBtn.remove(); // Force remove old one
 
   const submitButton = document.querySelector("#facultyMark .btn-success");
   if (!submitButton) return;
@@ -1194,10 +1194,7 @@ function addMultiSessionButton() {
   multiSessionBtn.type = "button";
   multiSessionBtn.className = "btn btn-warning";
   multiSessionBtn.id = "multiSessionBtn";
-
-  // CHANGED: Renamed from "Mark Multiple Sessions" to "Mark Multiple Hours Class"
-  multiSessionBtn.textContent = "📅 Mark Multiple Hours Class";
-
+  multiSessionBtn.textContent = "📅 Mark Multiple Sessions";
   multiSessionBtn.onclick = markMultipleSessions;
   multiSessionBtn.style.cssText = "display:inline-block; margin-left:10px;";
 
@@ -1217,13 +1214,12 @@ async function markMultipleSessions() {
   );
 
   if (!classId || !date || endSession < 1) {
-    showToast("Please select Class, Date, and Duration (Hours)", "error");
+    showToast("Please select Class, Date, and Session number", "error");
     return;
   }
 
-  // CHANGED: Message now says "X Hours Class"
   showConfirm(
-    `Mark attendance for ${endSession} Hours Class (Sessions 1-${endSession}) on ${date}?`,
+    `Mark attendance for ${endSession} sessions on ${date}?`,
     async function () {
       const checkboxes = document.querySelectorAll(".attendance-checkbox");
       if (checkboxes.length === 0) {
@@ -1234,13 +1230,15 @@ async function markMultipleSessions() {
       const allAttendance = await getAll("attendance");
       let totalRecords = 0;
 
-      // Loop remains the same (Session 1 to endSession)
+      // For each session from 1 to endSession
       for (let session = 1; session <= endSession; session++) {
+        // FIX: Using lowercase keys for filtering
         const existingForSession = allAttendance.filter(
           (r) =>
             r.classid === classId && r.date === date && r.session === session,
         );
 
+        // FIX: Map using lowercase 'studentid'
         const existingMap = new Map(
           existingForSession.map((r) => [r.studentid, r]),
         );
@@ -1251,6 +1249,7 @@ async function markMultipleSessions() {
           const studentId = parseInt(cb.value);
           const status = cb.checked ? "present" : "absent";
 
+          // FIX: Lowercase keys for Supabase object
           const record = {
             classid: classId,
             studentid: studentId,
@@ -1281,7 +1280,7 @@ async function markMultipleSessions() {
       }
 
       showToast(
-        `Attendance saved for ${totalRecords} records (${endSession} Hours Class)!`,
+        `Attendance saved for ${totalRecords} records across ${endSession} sessions!`,
       );
       if (typeof generateYearlyReport === "function") generateYearlyReport();
     },
