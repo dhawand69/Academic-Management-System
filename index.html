@@ -6,12 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Academic Management System</title>
 
+    <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
+    <!-- External CSS -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
+    <!-- LOGIN SCREEN -->
     <div id="loginOverlay" class="login-wrapper">
         <div class="login-card">
             <div class="login-header">
@@ -25,6 +28,7 @@
                 <div class="login-tab" onclick="switchLoginTab('student')" data-role="student">Student</div>
             </div>
 
+            <!-- Admin Login Form -->
             <div id="adminLoginForm" class="login-form active">
                 <div class="alert alert-error" id="adminLoginError"></div>
                 <form onsubmit="handleAdminLogin(event)">
@@ -40,6 +44,7 @@
                 </form>
             </div>
 
+            <!-- Faculty Login Form -->
             <div id="facultyLoginForm" class="login-form">
                 <div class="alert alert-error" id="facultyLoginError"></div>
                 <form onsubmit="handleFacultyLogin(event)">
@@ -55,6 +60,7 @@
                 </form>
             </div>
 
+            <!-- Student Login Form -->
             <div id="studentLoginForm" class="login-form">
                 <div class="alert alert-error" id="studentLoginError"></div>
                 <form onsubmit="handleStudentLogin(event)">
@@ -68,6 +74,7 @@
         </div>
     </div>
 
+    <!-- MAIN APP CONTAINER -->
     <div class="container" id="mainContainer">
         <div class="navbar">
             <h1>🎓 Academic Management System</h1>
@@ -85,6 +92,7 @@
             </div>
         </div>
 
+        <!-- ADMIN PANEL -->
         <div id="adminPanel" class="panel">
             <div class="section">
                 <h2 class="section-title">📊 Dashboard</h2>
@@ -121,10 +129,12 @@
                     <button class="tab-btn" onclick="switchAdminTab('settings')">Settings</button>
                 </div>
 
+                <!-- Users Tab -->
                 <div id="adminUsers" class="tab-content active">
                     <h2 class="section-title">👥 Students</h2>
 
-                    <div class="filter-group">
+                    <!-- Improved Filter Container from Code 2 -->
+                    <div class="filter-group" id="activeBranchFilterContainer">
                         <span class="filter-label">🏢 Filter by Branch:</span>
                         <select id="studentBranchFilter" onchange="filterByBranch(this.value)" class="branch-select">
                             <option value="all">All Departments</option>
@@ -139,6 +149,7 @@
                         </select>
                     </div>
 
+                    <!-- Year Filter (from Code 2) -->
                     <div class="filter-group">
                         <span class="filter-label">🎓 Select Academic Year:</span>
                         <div class="filter-btn-group" id="yearFilterGroup">
@@ -150,13 +161,16 @@
                         </div>
                     </div>
 
+                    <!-- Semester Filter Group (ADDED from Code 2 - was missing in original) -->
                     <div class="filter-group" id="semesterFilterGroup" style="display:none; margin-top:10px;">
                         <span class="filter-label">📅 Filter by Semester:</span>
                         <div class="filter-btn-group" id="semesterButtons">
-                            </div>
+                            <!-- Semester buttons will be generated here by JavaScript -->
+                        </div>
                     </div>
                 </div>
 
+                <!-- Select All Banner -->
                 <div id="selectAllBanner" class="selection-prompt" style="display:none;">
                     <span id="selectAllText">You have selected 4 students.</span>
                     <button onclick="selectAllListed()">Select all <span id="selectAllCount">0</span> listed
@@ -217,11 +231,13 @@
                             </tr>
                         </thead>
                         <tbody id="usersTableBody">
-                            </tbody>
+                            <!-- Students will be loaded here -->
+                        </tbody>
                     </table>
                 </div>
             </div>
 
+            <!-- Faculty Tab -->
             <div id="adminFaculty" class="tab-content">
                 <h2 class="section-title">👨‍🏫 Faculty Management</h2>
 
@@ -261,11 +277,13 @@
                             </tr>
                         </thead>
                         <tbody id="facultyTableBody">
-                            </tbody>
+                            <!-- Faculty will be loaded here -->
+                        </tbody>
                     </table>
                 </div>
             </div>
 
+            <!-- Classes Tab -->
             <div id="adminClasses" class="tab-content">
                 <h2 class="section-title">🏫 Classes & Subjects</h2>
 
@@ -274,8 +292,10 @@
                     <button class="btn btn-success" onclick="openBatchClassModal()">📂 Batch Class Creator</button>
                 </div>
 
+                <!-- Improved Filter Container from Code 2 -->
                 <div class="filter-container">
-                    <div class="filter-group" id="activeBranchFilterContainer">
+                    <!-- Branch Filter (ADDED from Code 2 - was missing in original) -->
+                    <div class="filter-group">
                         <span class="filter-label">🏢 Filter by Branch:</span>
                         <select id="classBranchFilter" onchange="loadClasses()" class="branch-select">
                             <option value="all">All Departments</option>
@@ -307,6 +327,7 @@
                     </div>
 
 
+                    <!-- Year Filter -->
                     <div class="filter-group">
                         <span class="filter-label">🎓 Filter by Year:</span>
                         <div class="filter-btn-group" id="classYearFilterGroup">
@@ -344,12 +365,14 @@
                 </div>
             </div>
 
+            <!-- Years & Semesters Tab -->
             <div id="adminYears" class="tab-content">
                 <h2 class="section-title">📅 Years & Semesters</h2>
                 <button class="btn btn-primary" onclick="openModal('addYearModal')">+ Add Academic Year</button>
 
                 <div id="yearsContainer">
-                    </div>
+                    <!-- Years will be loaded here -->
+                </div>
 
                 <h3 class="subsection-title">Add Custom Semester</h3>
                 <div class="form-row">
@@ -368,6 +391,7 @@
                 </div>
             </div>
 
+            <!-- Bulk Import Tab -->
             <div id="adminBulkImport" class="tab-content">
                 <h2 class="section-title">📤 Bulk Import</h2>
 
@@ -391,6 +415,7 @@
                     </div>
                 </div>
 
+                <!-- Students Import -->
                 <h3>📚 Import Students (CSV)</h3>
                 <div class="file-upload-area" id="studentUploadArea"
                     onclick="document.getElementById('studentFile').click()">
@@ -407,6 +432,7 @@
                     </div>
                 </div>
 
+                <!-- Faculty Import -->
                 <h3>👥 Import Faculty (CSV)</h3>
                 <div class="file-upload-area" id="facultyUploadArea"
                     onclick="document.getElementById('facultyFile').click()">
@@ -423,6 +449,7 @@
                     </div>
                 </div>
 
+                <!-- Classes Import -->
                 <h3>🏫 Import Classes (CSV)</h3>
                 <div class="file-upload-area" id="classesUploadArea"
                     onclick="document.getElementById('classesFile').click()">
@@ -439,6 +466,7 @@
                     </div>
                 </div>
 
+                <!-- Complete Database Import -->
                 <div class="complete-import-section">
                     <h3>🔁 Complete Database Import (ZIP/JSON)</h3>
                     <div class="alert alert-info">
@@ -465,6 +493,7 @@
                 </div>
             </div>
 
+            <!-- Attendance History Tab -->
             <div id="adminAttendanceHistory" class="tab-content">
                 <h2 class="section-title">📊 Attendance History Reports</h2>
 
@@ -589,10 +618,12 @@
                     </div>
                 </div>
 
+                <!-- Year-wise Attendance Summary Section -->
                 <div id="yearWiseAttendanceSection" class="summary-section">
                     <h3>📈 Year-wise Attendance Summary</h3>
                     <div id="yearWiseAttendanceSummary">
-                        </div>
+                        <!-- Will be populated dynamically -->
+                    </div>
                 </div>
 
                 <div id="adminAttendanceTableContainer" class="table-responsive">
@@ -612,7 +643,8 @@
                             </tr>
                         </thead>
                         <tbody id="adminAttendanceBody">
-                            </tbody>
+                            <!-- Records will be loaded here -->
+                        </tbody>
                     </table>
                 </div>
 
@@ -639,6 +671,7 @@
                 </div>
             </div>
 
+            <!-- Internal Marks Tab -->
             <div id="adminInternalMarks" class="tab-content">
                 <h2 class="section-title">📊 Internal Marks Reports</h2>
 
@@ -747,6 +780,7 @@
                 </div>
             </div>
 
+            <!-- Bulk Export Tab -->
             <div id="adminBulkExport" class="tab-content">
                 <h2 class="section-title">📤 Data Export & Backup</h2>
 
@@ -838,6 +872,7 @@
                     </div>
                 </div>
 
+                <!-- Export Statistics - Fixed Position -->
                 <div class="export-stats"
                     style="margin-top: 30px; padding: 25px; background: #f8f9fa; border-radius: 8px; border: 1px solid #ddd;">
                     <h3 style="margin-top: 0; color: #2c3e50; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
@@ -871,6 +906,7 @@
                 </div>
             </div>
 
+            <!-- Settings Tab -->
             <div id="adminSettings" class="tab-content">
                 <h2 class="section-title">⚙️ System Settings</h2>
 
@@ -946,6 +982,7 @@
         </div>
     </div>
 
+    <!-- FACULTY PANEL -->
     <div id="facultyPanel" class="panel">
         <div class="section">
             <div class="tabs">
@@ -956,6 +993,7 @@
                 <button class="tab-btn" onclick="switchFacultyTab('marks', event)">Internal Marks</button>
             </div>
 
+            <!-- Mark Attendance Tab -->
             <div id="facultyMark" class="tab-content active">
                 <h2 class="section-title">✅ Mark Attendance (Multi-Session Support)</h2>
                 <div class="form-row">
@@ -990,6 +1028,7 @@
                         Sessions</button>
                 </div>
 
+                <!-- Add Student/Batch to Session Logic -->
                 <div class="extra-students-section">
                     <h4>➕ Add Extra Students (Electives/Backlogs)</h4>
 
@@ -1035,6 +1074,7 @@
                 </div>
             </div>
 
+            <!-- Date-wise History Tab -->
             <div id="facultyHistory" class="tab-content">
                 <h2 class="section-title">📅 Attendance History (Multi-Session)</h2>
                 <div class="table-header">
@@ -1061,6 +1101,7 @@
                 <div id="historyList" class="table-responsive"></div>
             </div>
 
+            <!-- Report Tab -->
             <div id="facultyReport" class="tab-content">
                 <h2 class="section-title">📈 Year-wise Attendance Report</h2>
                 <div class="year-filter" id="yearFilter"></div>
@@ -1082,6 +1123,7 @@
                 </div>
             </div>
 
+            <!-- Internal Marks Tab -->
             <div id="facultyMarks" class="tab-content">
                 <h2 class="section-title">📝 Update Internal Marks</h2>
 
@@ -1149,7 +1191,8 @@
                                 </tr>
                             </thead>
                             <tbody id="facultyMarksBody">
-                                </tbody>
+                                <!-- Marks data will be populated here -->
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -1157,6 +1200,7 @@
         </div>
     </div>
 
+    <!-- STUDENT PANEL -->
     <div id="studentPanel" class="panel">
         <div class="section">
             <h2 class="section-title">👤 Student Profile</h2>
@@ -1198,6 +1242,9 @@
         </div>
     </div>
 
+    <!-- ================ MODALS ================ -->
+
+    <!-- Faculty Profile Modal -->
     <div id="facultyProfileModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1212,6 +1259,7 @@
         </div>
     </div>
 
+    <!-- Add Student Modal -->
     <div id="addUserModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1276,6 +1324,7 @@
         </div>
     </div>
 
+    <!-- Add Faculty Modal -->
     <div id="addFacultyModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1330,6 +1379,7 @@
         </div>
     </div>
 
+    <!-- Edit Faculty Modal -->
     <div id="editFacultyModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1392,6 +1442,7 @@
         </div>
     </div>
 
+    <!-- Add Class Modal -->
     <div id="addClassModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1445,6 +1496,7 @@
         </div>
     </div>
 
+    <!-- Edit Class Modal -->
     <div id="editClassModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1499,6 +1551,7 @@
         </div>
     </div>
 
+    <!-- Batch Class Creator Modal -->
     <div id="batchClassModal" class="modal">
         <div class="modal-content wide-modal">
             <div class="modal-header">
@@ -1558,6 +1611,7 @@
         </div>
     </div>
 
+    <!-- Bulk Attendance Modal -->
     <div id="bulkAttendanceModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1592,6 +1646,7 @@
         </div>
     </div>
 
+    <!-- Student Attendance Detail Modal -->
     <div id="studentAttendanceDetailModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1610,6 +1665,7 @@
         </div>
     </div>
 
+    <!-- Add Year Modal -->
     <div id="addYearModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1634,6 +1690,7 @@
         </div>
     </div>
 
+    <!-- Edit Attendance Modal -->
     <div id="editAttendanceModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1707,6 +1764,7 @@
         </div>
     </div>
 
+    <!-- Generic Confirmation Modal -->
     <div id="confirmationModal" class="modal">
         <div class="modal-content small-modal">
             <div class="modal-header">
@@ -1721,6 +1779,7 @@
         </div>
     </div>
 
+    <!-- Password Change Modal -->
     <div id="passwordChangeModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1750,6 +1809,7 @@
         </div>
     </div>
 
+    <!-- Faculty Password Reset Modal (Admin Only) -->
     <div id="facultyPasswordResetModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1777,6 +1837,7 @@
         </div>
     </div>
 
+    <!-- Edit Student Modal -->
     <div id="editUserModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1808,7 +1869,6 @@
                     <div class="form-group">
                         <label>Department:</label>
                         <select id="editStudentDept" required>
-                            <option value="">-- Select --</option>
                             <option value="Computer Science">Computer Science</option>
                             <option value="Civil">Civil</option>
                             <option value="Mechanical">Mechanical</option>
@@ -1826,7 +1886,6 @@
                     <div class="form-group">
                         <label>Semester:</label>
                         <select id="editStudentSemester" required>
-                            <option value="">-- Select --</option>
                             <option value="1">1</option>
                             <option value="2">2</option>
                             <option value="3">3</option>
@@ -1845,8 +1904,10 @@
         </div>
     </div>
 
+    <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- ================ EXTERNAL JAVASCRIPT FILES ================ -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/database.js"></script>
