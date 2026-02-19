@@ -1,4 +1,19 @@
 {
-  "name": "attendance-system",
-  "private": true
+  "name": "academic-management-system",
+  "version": "1.0.0",
+  "description": "Government Engineering College Kaimur - Academic Portal",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required for plain HTML/JS'",
+    "start": "vercel"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.11"
+  },
+  "engines": {
+    "node": ">=18.x"
+  },
+  "author": "Jeeteshwar Shrivastava",
+  "license": "MIT"
 }
