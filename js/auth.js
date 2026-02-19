@@ -104,29 +104,169 @@ async function handleFacultyLogin(event) {
 // 3. STUDENT LOGIN (Database Check) - UPDATED FROM CODE 2
 // ==========================================
 // FIND THIS FUNCTION IN auth.js
+// ==========================================
+// STUDENT LOGIN (Secure Password Validation)
+// ==========================================
 async function handleStudentLogin(event) {
   event.preventDefault();
-  const rollNo = document.getElementById("loginStudentId").value;
+
+  const rollNo = document.getElementById("loginStudentId").value.trim();
+  const password = document.getElementById("loginStudentPassword").value.trim();
   const errorDiv = document.getElementById("studentLoginError");
 
-  // FIX: Using lowercase 'rollno'
-  const allStudents = await getAll("students");
-  const student = allStudents.find((s) => s.rollno === rollNo);
+  if (errorDiv) errorDiv.style.display = "none";
 
-  if (student) {
-    completeLogin("student", {
-      id: student.id,
-      rollno: student.rollno,
-      firstname: student.firstname,
-      lastname: student.lastname,
-      department: student.department,
-      semester: student.semester,
-      email: student.email, // <--- ADD THIS LINE HERE
-      role: "student",
-    });
-  } else {
-    errorDiv.textContent = "❌ Student Roll No not found";
+  if (!password) {
+    showToast("Please enter your password", "error");
+    return;
+  }
+
+  try {
+    const allStudents = await getAll("students");
+    // Find student by roll number
+    const student = allStudents.find((s) => s.rollno == rollNo);
+
+    if (student) {
+      // Check if the student has a password set (not a first-time user)
+      if (!student.password) {
+        showToast(
+          "First-time user? Please click 'Get Password' below.",
+          "info",
+        );
+        return;
+      }
+
+      // Validate credentials
+      if (student.password === password) {
+        // Successful Login
+        if (!student.has_logged_in) {
+          student.has_logged_in = true;
+          await updateRecord("students", student);
+        }
+
+        completeLogin("student", student);
+        showToast(`Welcome back, ${student.firstname}!`);
+      } else {
+        showToast("Invalid Registration Number or Password", "error");
+      }
+    } else {
+      showToast("Student records not found", "error");
+    }
+  } catch (error) {
+    console.error("Login Error:", error);
+    showToast("Server error during login", "error");
+  }
+}
+
+// ==========================================
+// FIRST TIME STUDENT LOGIN FLOW
+// ==========================================
+async function handleFirstTimeLogin(event) {
+  event.preventDefault();
+
+  // Grab the Roll Number from the login input
+  const rollNo = document.getElementById("loginStudentId").value.trim();
+
+  // UI Message Elements
+  const errorDiv = document.getElementById("studentLoginError");
+  // Ensure you added the infoDiv to your HTML as discussed previously
+  const infoDiv = document.getElementById("studentLoginInfo");
+
+  // Reset messages
+  if (errorDiv) errorDiv.style.display = "none";
+  if (infoDiv) infoDiv.style.display = "none";
+
+  if (!rollNo) {
+    errorDiv.textContent =
+      "❌ Please enter your Registration Number first to get your password.";
     errorDiv.style.display = "block";
+    return;
+  }
+
+  // Update UI to show loading state
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.textContent = "Generating & Sending...";
+  btn.style.pointerEvents = "none";
+  btn.style.opacity = "0.7";
+
+  try {
+    // 1. Fetch Student from Database
+    const allStudents = await getAll("students");
+    const student = allStudents.find((s) => s.rollno == rollNo);
+
+    if (!student) {
+      errorDiv.textContent = "❌ Student Roll No not found in the system.";
+      errorDiv.style.display = "block";
+      return;
+    }
+
+    // 2. Check if already logged in
+    // 2. Check if already logged in
+    if (student.has_logged_in) {
+      errorDiv.textContent =
+        "❌ You have already logged in before. Please enter your password above, or contact the Examination Department if you have lost it.";
+      errorDiv.style.display = "block";
+      return;
+    }
+    // 3. Ensure Email Exists
+    if (!student.email) {
+      errorDiv.textContent =
+        "⚠️ Email not found. Please visit the examination department to update your email and get your password.";
+      errorDiv.style.display = "block";
+      return;
+    }
+
+    // 4. Generate and Save Password (if it doesn't exist yet)
+    if (!student.password) {
+      // Generates a random 8-character alphanumeric password
+      const newPassword = Math.random().toString(36).slice(-8).toUpperCase();
+      student.password = newPassword;
+
+      // Save the newly generated password to Supabase
+      await updateRecord("students", student);
+    }
+
+    // 5. Call the Vercel API Route to send the email securely
+    const response = await fetch("/api/send-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: student.email,
+        name: student.firstname,
+        rollno: student.rollno,
+        password: student.password,
+      }),
+    });
+
+    const data = await response.json();
+
+    // 6. Handle API Response
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to send email via server.");
+    }
+
+    console.log("✅ Vercel API successfully dispatched the email!");
+
+    // 7. Show Success Message
+    if (infoDiv) {
+      infoDiv.textContent = `✅ Your password has been sent to your registered email (${student.email}). Please check your inbox (or spam folder).`;
+      infoDiv.style.display = "block";
+    }
+  } catch (error) {
+    console.error("First time login error:", error);
+    if (errorDiv) {
+      errorDiv.textContent =
+        "❌ An error occurred while sending the email. Please try again later.";
+      errorDiv.style.display = "block";
+    }
+  } finally {
+    // 8. Restore Button UI
+    btn.textContent = originalText;
+    btn.style.pointerEvents = "auto";
+    btn.style.opacity = "1";
   }
 }
 
@@ -338,7 +478,7 @@ function updateUIForRole(role) {
     }
   } else {
     console.warn(
-      "⚠️ Header elements not found. Please add id='userInfoName' to the name div in HTML."
+      "⚠️ Header elements not found. Please add id='userInfoName' to the name div in HTML.",
     );
   }
 
@@ -519,7 +659,7 @@ async function openFacultyPasswordResetModal() {
 
 async function resetFacultyPassword() {
   const facultyId = parseInt(
-    document.getElementById("resetFacultySelect").value
+    document.getElementById("resetFacultySelect").value,
   );
   const newPassword = document.getElementById("resetFacultyPassword").value;
 
@@ -546,7 +686,7 @@ async function resetFacultyPassword() {
     // FIX: Using lowercase keys for success message
     showToast(
       `Password reset for ${faculty.firstname} ${faculty.lastname}`,
-      "success"
+      "success",
     );
 
     const infoDiv = document.getElementById("resetFacultyInfo");
@@ -563,7 +703,6 @@ async function resetFacultyPassword() {
     showToast("Error resetting password", "error");
   }
 }
-
 // =============================================
 // UNIVERSAL LOGIN HANDLERS - FROM CODE 1 (KEPT FOR COMPATIBILITY)
 // =============================================
@@ -605,7 +744,7 @@ async function handleLogin(event, role) {
       (f) =>
         (String(f.facultyid).toLowerCase() === enteredId.toLowerCase() ||
           f.email === enteredId) &&
-        f.password === enteredPass
+        f.password === enteredPass,
     );
 
     if (faculty) {
@@ -613,7 +752,7 @@ async function handleLogin(event, role) {
     } else {
       console.warn(
         "Match failed. Database has:",
-        allFaculty.map((f) => f.facultyid)
+        allFaculty.map((f) => f.facultyid),
       );
       showToast("Invalid Credentials (ID or Password incorrect)", "error");
     }
@@ -642,7 +781,7 @@ async function handleLogin(event, role) {
     } else {
       console.warn(
         "Student not found. DB Roll Nos:",
-        allStudents.slice(0, 5).map((s) => s.rollno)
+        allStudents.slice(0, 5).map((s) => s.rollno),
       );
       showToast("Student Registration No. not found", "error");
     }
