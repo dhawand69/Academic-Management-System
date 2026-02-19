@@ -41,6 +41,185 @@ async function populateFacultyClassDropdown() {
     if (historySelect) historySelect.appendChild(opt1);
   });
 }
+
+async function processOCR() {
+  const fileInput = document.getElementById("ocrImageInput");
+  const statusDiv = document.getElementById("ocrStatus");
+  const progressFill = document.getElementById("ocrProgressFill");
+  const progressBar = document.getElementById("ocrProgressBar");
+  const bulkInput = document.getElementById("bulkAttendanceInput");
+  const classSelect = document.getElementById("facultyClassSelect");
+
+  if (!classSelect || !classSelect.value) {
+    showToast("Please select a Class on the main screen first!", "warning");
+    return;
+  }
+
+  if (!fileInput.files || fileInput.files.length === 0) {
+    showToast("Please select or capture an image first.", "warning");
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const classId = parseInt(classSelect.value);
+
+  // Lock UI
+  document.getElementById("btnProcessOCR").disabled = true;
+  progressBar.style.display = "block";
+  progressFill.style.width = "0%";
+  statusDiv.textContent = "⏳ Decoding handwriting... Please wait.";
+  statusDiv.style.color = "var(--color-info)";
+
+  try {
+    // 1. Fetch Class Students
+    const [allStudents, allClasses] = await Promise.all([
+      getAll("students"),
+      getAll("classes"),
+    ]);
+
+    const selectedClass = allClasses.find((c) => c.id === classId);
+    const targetDepartments = selectedClass.department.split(",");
+
+    const validStudents = allStudents.filter(
+      (s) =>
+        s.semester == selectedClass.semester &&
+        targetDepartments.includes(s.department),
+    );
+    const validRollNumbers = validStudents.map((s) =>
+      s.rollno.toString().trim(),
+    );
+
+    // 2. Run Tesseract
+    const result = await Tesseract.recognize(file, "eng", {
+      logger: (m) => {
+        if (m.status === "recognizing text" && progressFill) {
+          progressFill.style.width = `${Math.round(m.progress * 100)}%`;
+        }
+      },
+    });
+
+    const extractedText = result.data.text;
+    console.log("Raw OCR Text:\n", extractedText);
+
+    // --- 3. ULTRA-AGGRESSIVE SANITIZATION ENGINE ---
+    const matchedNumbers = new Set();
+
+    // This dictionary specifically targets the hallucinations from your image
+    const aggressiveCorrections = {
+      O: "0",
+      o: "0",
+      D: "0",
+      Q: "0",
+      "@": "0",
+      U: "0",
+      C: "0",
+      "%": "0",
+      I: "1",
+      l: "1",
+      i: "1",
+      "|": "1",
+      "]": "1",
+      "[": "1",
+      "!": "1",
+      "\\": "1",
+      "/": "1",
+      t: "1",
+      L: "1",
+      j: "1",
+      Z: "2",
+      z: "2",
+      "£": "2",
+      "?": "2",
+      E: "3",
+      e: "3",
+      A: "4",
+      Y: "4",
+      y: "4",
+      "¥": "4",
+      S: "5",
+      s: "5",
+      G: "6",
+      b: "6",
+      T: "7",
+      F: "7",
+      B: "8",
+      "&": "8",
+      g: "9",
+      q: "9",
+      P: "9",
+    };
+
+    // Process the text line by line to prevent cross-contamination
+    const lines = extractedText.split("\n");
+
+    lines.forEach((line) => {
+      // Step A: Force convert lookalike letters to numbers
+      let mappedLine = "";
+      for (let char of line) {
+        mappedLine +=
+          aggressiveCorrections[char] !== undefined
+            ? aggressiveCorrections[char]
+            : char;
+      }
+
+      // Step B: Strip EVERYTHING that isn't a digit (crushes spaces and stray letters)
+      const pureDigits = mappedLine.replace(/\D/g, "");
+
+      // Step C: Validate & Hunt
+      // If the line has at least 5 digits, it likely contains a roll number
+      if (pureDigits.length >= 5) {
+        // Check if this line actually contains a roll number prefix anchor to prevent false positives
+        // (Looking for variants of 221, 156, or 148)
+        const hasAnchor =
+          pureDigits.includes("22") ||
+          pureDigits.includes("156") ||
+          pureDigits.includes("148") ||
+          pureDigits.includes("291");
+
+        if (hasAnchor) {
+          // Hunt for the students in our database
+          validRollNumbers.forEach((validRoll) => {
+            const serial3 = validRoll.slice(-3); // e.g. "003"
+            const serial4 = validRoll.slice(-4); // e.g. "8003"
+
+            // If the pure digit string contains their specific serial number, it's a match!
+            if (pureDigits.includes(serial4) || pureDigits.includes(serial3)) {
+              matchedNumbers.add(validRoll);
+            }
+          });
+        }
+      }
+    });
+
+    // 4. Output Generation
+    const uniqueMatched = Array.from(matchedNumbers);
+
+    if (uniqueMatched.length === 0) {
+      statusDiv.textContent =
+        "⚠️ Handwriting too unclear. Could not map any students.";
+      statusDiv.style.color = "var(--color-danger)";
+    } else {
+      statusDiv.textContent = `✅ Recovered & mapped ${uniqueMatched.length} student(s)!`;
+      statusDiv.style.color = "var(--color-success)";
+
+      let existingText = bulkInput.value.trim();
+      let newText = uniqueMatched.map((num) => `${num}, P`).join("\n");
+
+      bulkInput.value = existingText ? existingText + "\n" + newText : newText;
+      showToast("Review the recovered numbers below.", "success");
+    }
+  } catch (error) {
+    console.error("OCR Error:", error);
+    statusDiv.textContent = "❌ Processing failed. Please try again.";
+    statusDiv.style.color = "var(--color-danger)";
+  } finally {
+    document.getElementById("btnProcessOCR").disabled = false;
+    setTimeout(() => {
+      progressBar.style.display = "none";
+    }, 2000);
+  }
+}
+
 // Populate admin class filter
 async function populateAdminClassFilter(
   semesterFilter = "all",
