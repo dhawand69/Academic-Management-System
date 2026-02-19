@@ -165,6 +165,8 @@ function getValidColumns(table) {
       "semester",
       "createdat",
       "updatedat",
+      "password", // Add this
+      "has_logged_in" // Add this (boolean)
     ],
     faculty: [
       "id",
