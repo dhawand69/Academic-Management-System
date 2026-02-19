@@ -1316,6 +1316,74 @@ function filterClasses(year) {
   loadClasses();
 }
 
+
+
+// ==========================================
+// ADMIN: RESET STUDENT PASSWORD
+// ==========================================
+async function adminResetStudentPassword(rollNo) {
+    // 1. Confirm with the admin before proceeding
+    if (!confirm(`Are you sure you want to reset the password for Registration No: ${rollNo}? This will overwrite their current password.`)) {
+        return;
+    }
+
+    showToast("Generating and sending new password...", "info");
+
+    try {
+        // 2. Fetch the student from the database
+        const allStudents = await getAll("students");
+        const student = allStudents.find((s) => s.rollno == rollNo);
+
+        if (!student) {
+            showToast("❌ Student not found in the database.", "error");
+            return;
+        }
+
+        if (!student.email) {
+            showToast("❌ Cannot reset: Student does not have a registered email.", "error");
+            return;
+        }
+
+        // 3. Generate a new password and update the record
+        const newPassword = Math.random().toString(36).slice(-8).toUpperCase();
+        student.password = newPassword;
+        student.updatedat = new Date().toISOString();
+
+        await updateRecord("students", student);
+
+        // 4. Send the reset email via the Vercel API
+        const response = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: student.email,
+                name: student.firstname, 
+                rollno: student.rollno,
+                password: student.password,
+                isReset: true // Tells the API to use the "lost/stolen" email template
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error("API Route failed to send email.");
+        }
+
+        showToast(`✅ Password reset successfully and emailed to ${student.email}!`, "success");
+
+    } catch (error) {
+        console.error("Admin Password Reset Error:", error);
+        showToast("❌ Error resetting password. Check console for details.", "error");
+    }
+}
+
+// Expose it to the window so the HTML button can click it
+window.adminResetStudentPassword = adminResetStudentPassword;
+
+
+
+
 function filterClassesBySemester(sem, event) {
   activeClassFilter.semester = sem;
   const semButtons = document.getElementById("classSemesterButtons");
