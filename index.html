@@ -62,13 +62,28 @@
 
             <!-- Student Login Form -->
             <div id="studentLoginForm" class="login-form">
-                <div class="alert alert-error" id="studentLoginError"></div>
+                <div class="alert alert-error" id="studentLoginError" style="display:none;"></div>
+                <div class="alert alert-info" id="studentLoginInfo"
+                    style="display:none; background: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+                </div>
+
                 <form onsubmit="handleStudentLogin(event)">
                     <div class="form-group">
                         <label>Registration Number (Roll No):</label>
                         <input type="text" id="loginStudentId" placeholder="Enter Reg No (e.g. 22156148040)" required>
                     </div>
+                    <div class="form-group">
+                        <label>Password:</label>
+                        <input type="password" id="loginStudentPassword" placeholder="Enter your password">
+                    </div>
+
                     <button type="submit" class="btn btn-primary btn-full">Login as Student</button>
+
+                    <div style="margin-top: 15px; text-align: center;">
+                        <a href="#" onclick="handleFirstTimeLogin(event)"
+                            style="color: var(--color-primary); font-size: 14px; text-decoration: none; font-weight: bold;">First
+                            time logging in? Get Password</a>
+                    </div>
                 </form>
             </div>
         </div>
@@ -1619,13 +1634,33 @@
         <div id="bulkAttendanceModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    Bulk Upload Attendance (Multi-Session)
+                    Bulk Upload & OCR Attendance
                     <button class="close-btn" onclick="closeModal('bulkAttendanceModal')">&times;</button>
                 </div>
+
                 <div class="alert alert-info">
-                    Paste student Roll Numbers for the selected class. <br>
-                    Format: <strong>RollNo</strong> (Default: Present) or <strong>RollNo, Status (P/A)</strong><br>
-                    <strong>Note:</strong> This will be saved for the currently selected session.
+                    <strong>Option 1:</strong> Scan a handwritten sheet. <br>
+                    <strong>Option 2:</strong> Manually paste roll numbers below.
+                </div>
+
+                <div
+                    style="background: #f8f9fa; border: 1px dashed #3498db; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                    <h4 style="margin-top: 0; color: #2c3e50;">📷 Smart Scan (OCR)</h4>
+                    <p style="font-size: 12px; color: #666;">Take a photo of the attendance sheet. The system will
+                        extract roll numbers automatically.</p>
+
+                    <input type="file" id="ocrImageInput" accept="image/*" capture="environment"
+                        style="margin-bottom: 10px; width: 100%;">
+                    <button class="btn btn-info btn-full" onclick="processOCR()" id="btnProcessOCR">🔍 Extract
+                        Registration Numbers</button>
+
+                    <div id="ocrProgressBar"
+                        style="display: none; height: 5px; background: #ddd; margin-top: 10px; border-radius: 3px; overflow: hidden;">
+                        <div id="ocrProgressFill"
+                            style="height: 100%; width: 0%; background: #27ae60; transition: width 0.2s;"></div>
+                    </div>
+                    <div id="ocrStatus"
+                        style="margin-top: 10px; font-weight: bold; font-size: 13px; text-align: center;"></div>
                 </div>
 
                 <div class="form-group">
@@ -1640,16 +1675,15 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Attendance Data:</label>
-                    <textarea id="bulkAttendanceInput" rows="10" placeholder="22156148040, P
-22156148041, A
-..."></textarea>
+                    <label>Extracted / Manual Data (Edit here if needed):</label>
+                    <textarea id="bulkAttendanceInput" rows="6" placeholder="22156148040, P
+22156148041, P..."></textarea>
                 </div>
-                <button class="btn btn-success" onclick="saveBulkAttendance()">💾 Upload & Save for Selected
+
+                <button class="btn btn-success btn-full" onclick="saveBulkAttendance()">💾 Upload & Save for Selected
                     Session</button>
             </div>
         </div>
-
         <!-- Student Attendance Detail Modal -->
         <div id="studentAttendanceDetailModal" class="modal">
             <div class="modal-content">
@@ -1901,18 +1935,25 @@
                             </select>
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer" style="display: flex; justify-content: space-between; width: 100%;">
+
+                        <button type="button" class="btn btn-warning"
+                            style="background-color: #f39c12; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;"
+                            onclick="adminResetStudentPassword(document.getElementById('editStudentRollNo').value)">
+                            🔑 Reset & Email Password
+                        </button>
+
                         <button type="submit" class="btn btn-success">💾 Save Changes</button>
                     </div>
                 </form>
             </div>
         </div>
-
         <!-- Toast Container -->
         <div class="toast-container" id="toastContainer"></div>
 
         <!-- ================ EXTERNAL JAVASCRIPT FILES ================ -->
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
         <script src="js/config.js"></script>
         <script src="js/database.js"></script>
         <script src="js/import.js"></script>
