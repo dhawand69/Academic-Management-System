@@ -151,9 +151,9 @@
                     <!-- Improved Filter Container from Code 2 -->
                     <div class="filter-container">
                         <!-- Branch Filter First (from Code 2) -->
-                        <div class="filter-group" id="studentBranchFilterContainer">
+                        <div class="filter-group" id="activeBranchFilterContainer">
                             <span class="filter-label">🏢 Filter by Branch:</span>
-                            <select id="studentBranchFilter" onchange="loadUsers()" class="branch-select">
+                            <select id="classBranchFilter" onchange="loadClasses()" class="branch-select">
                                 <option value="all">All Departments</option>
                                 <option value="Computer Science">Computer Science</option>
                                 <option value="Civil">Civil</option>
@@ -314,7 +314,7 @@
                         <!-- Branch Filter (ADDED from Code 2 - was missing in original) -->
                         <div class="filter-group">
                             <span class="filter-label">🏢 Filter by Branch:</span>
-                            <select id="studentBranchFilter" onchange="filterStudents('current')" class="branch-select">
+                            <select id="classBranchFilter" onchange="loadClasses()" class="branch-select">
                                 <option value="all">All Departments</option>
                                 <option value="Computer Science">Computer Science</option>
                                 <option value="Civil">Civil</option>
