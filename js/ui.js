@@ -300,15 +300,11 @@ async function loadStudents() {
     )
       return false;
     if (activeStudentFilter.branch !== "all") {
-      // Remove all spaces so "CSE (Networks)" perfectly matches "CSE(Networks)"
-      const sDept = (student.department || "").toLowerCase().replace(/\s+/g, '');
-      const fDept = activeStudentFilter.branch.toLowerCase().replace(/\s+/g, '');
-      
-      // Strict exact match prevents empty or partial departments from sneaking in
-      if (sDept !== fDept) {
-          return false;
-      }
+      const sDept = (student.department || "").toLowerCase().trim();
+      const fDept = activeStudentFilter.branch.toLowerCase().trim();
+      if (!sDept.includes(fDept) && !fDept.includes(sDept)) return false;
     }
+    return true;
   });
 
   // Sort
